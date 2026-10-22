@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="MovieMind.Application/MovieMind.Application.csproj" />
+  <Project Path="MovieMind.Domain/MovieMind.Domain.csproj" />
+  <Project Path="MovieMind.Infrastructure/MovieMind.Infrastructure.csproj" />
+  <Project Path="MovieMind.Web/MovieMind.Web.csproj" />
+  <Project Path="MovieMind/MovieMind.API.csproj" />
+</Solution>

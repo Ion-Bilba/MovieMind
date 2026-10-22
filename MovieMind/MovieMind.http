@@ -1,0 +1,6 @@
+@MovieMind_HostAddress = http://localhost:5048
+
+GET {{MovieMind_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,11 @@
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\bin\Debug\net10.0\MovieMind.Infrastructure.deps.json
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\bin\Debug\net10.0\MovieMind.Infrastructure.dll
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\bin\Debug\net10.0\MovieMind.Infrastructure.pdb
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.AssemblyInfo.cs
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.dll
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\refint\MovieMind.Infrastructure.dll
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.pdb
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\ref\MovieMind.Infrastructure.dll
