@@ -52,5 +52,17 @@ public class MovieConfiguration : IEntityTypeConfiguration<Movie>
                     join.ToTable("MovieGenres");
                     join.HasKey("MovieId", "GenreId");
                 });
+
+        builder.HasMany(m => m.Actors)
+            .WithMany(a => a.Movies)
+            .UsingEntity<MovieActor>(
+                right => right
+                    .HasOne(ma => ma.Actor)
+                    .WithMany(a => a.MovieActors)
+                    .HasForeignKey(ma => ma.ActorId),
+                left => left
+                    .HasOne(ma => ma.Movie)
+                    .WithMany(m => m.MovieActors)
+                    .HasForeignKey(ma => ma.MovieId));
     }
 }

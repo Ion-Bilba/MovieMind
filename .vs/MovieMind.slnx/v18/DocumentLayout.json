@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{9F618C74-B502-D639-343E-4287950FB224}|MovieMind.Infrastructure\\MovieMind.Infrastructure.csproj|c:\\users\\user\\desktop\\proiect de an la apa\\moviemind\\moviemind.infrastructure\\configurations\\movieconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9F618C74-B502-D639-343E-4287950FB224}|MovieMind.Infrastructure\\MovieMind.Infrastructure.csproj|solutionrelative:moviemind.infrastructure\\configurations\\movieconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{9F618C74-B502-D639-343E-4287950FB224}|MovieMind.Infrastructure\\MovieMind.Infrastructure.csproj|c:\\users\\user\\desktop\\proiect de an la apa\\moviemind\\moviemind.infrastructure\\configurations\\userconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{9F618C74-B502-D639-343E-4287950FB224}|MovieMind.Infrastructure\\MovieMind.Infrastructure.csproj|solutionrelative:moviemind.infrastructure\\configurations\\userconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -29,10 +33,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{9F618C74-B502-D639-343E-4287950FB224}|MovieMind.Infrastructure\\MovieMind.Infrastructure.csproj|c:\\users\\user\\desktop\\proiect de an la apa\\moviemind\\moviemind.infrastructure\\configurations\\genreconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{9F618C74-B502-D639-343E-4287950FB224}|MovieMind.Infrastructure\\MovieMind.Infrastructure.csproj|solutionrelative:moviemind.infrastructure\\configurations\\genreconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{9F618C74-B502-D639-343E-4287950FB224}|MovieMind.Infrastructure\\MovieMind.Infrastructure.csproj|c:\\users\\user\\desktop\\proiect de an la apa\\moviemind\\moviemind.infrastructure\\configurations\\movieconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{9F618C74-B502-D639-343E-4287950FB224}|MovieMind.Infrastructure\\MovieMind.Infrastructure.csproj|solutionrelative:moviemind.infrastructure\\configurations\\movieconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{86463AA1-FA5C-E50E-0306-CCE48ABDFFA8}|MovieMind.Domain\\MovieMind.Domain.csproj|c:\\users\\user\\desktop\\proiect de an la apa\\moviemind\\moviemind.domain\\entities\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -74,154 +74,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 7,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind\\Program.cs",
-              "RelativeDocumentMoniker": "MovieMind\\Program.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind\\Program.cs",
-              "RelativeToolTip": "MovieMind\\Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T13:23:22.746Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind\\appsettings.json",
-              "RelativeDocumentMoniker": "MovieMind\\appsettings.json",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind\\appsettings.json",
-              "RelativeToolTip": "MovieMind\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-10-22T13:22:46.308Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "RatingConfiguration.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\RatingConfiguration.cs",
-              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\RatingConfiguration.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\RatingConfiguration.cs",
-              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\RatingConfiguration.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACYAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T13:22:05.382Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "MovieActorConfiguration.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\MovieActorConfiguration.cs",
-              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\MovieActorConfiguration.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\MovieActorConfiguration.cs",
-              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\MovieActorConfiguration.cs",
-              "ViewState": "AgIAAAIAAAAAAAAAAAAQwBwAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T13:21:36.807Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "UserConfiguration.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\UserConfiguration.cs",
-              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\UserConfiguration.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\UserConfiguration.cs",
-              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\UserConfiguration.cs",
-              "ViewState": "AgIAACkAAAAAAAAAAAAAACkAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T13:17:52.294Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "ActorConfiguration.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\ActorConfiguration.cs",
-              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\ActorConfiguration.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\ActorConfiguration.cs",
-              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\ActorConfiguration.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T13:21:10.685Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "GenreConfiguration.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\GenreConfiguration.cs",
-              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\GenreConfiguration.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\GenreConfiguration.cs",
-              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\GenreConfiguration.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T13:20:42.275Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "MovieConfiguration.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\MovieConfiguration.cs",
-              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\MovieConfiguration.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\MovieConfiguration.cs",
-              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\MovieConfiguration.cs",
-              "ViewState": "AgIAABAAAAAAAAAAAAAQwDcAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T13:19:50.808Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "MovieMind.Application",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Application\\MovieMind.Application.csproj",
-              "RelativeDocumentMoniker": "MovieMind.Application\\MovieMind.Application.csproj",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Application\\MovieMind.Application.csproj",
-              "RelativeToolTip": "MovieMind.Application\\MovieMind.Application.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-10-22T13:13:30.693Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "IApplicationDbContext.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Application\\IApplicationDbContext.cs",
-              "RelativeDocumentMoniker": "MovieMind.Application\\IApplicationDbContext.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Application\\IApplicationDbContext.cs",
-              "RelativeToolTip": "MovieMind.Application\\IApplicationDbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAgAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T13:12:37.219Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "User.cs",
-              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Domain\\Entities\\User.cs",
-              "RelativeDocumentMoniker": "MovieMind.Domain\\Entities\\User.cs",
-              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Domain\\Entities\\User.cs",
-              "RelativeToolTip": "MovieMind.Domain\\Entities\\User.cs",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAsAAAAWAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-05T12:42:28.836Z",
-              "EditorCaption": ""
             },
             {
               "$type": "Bookmark",
@@ -233,6 +90,140 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind\\appsettings.json",
+              "RelativeDocumentMoniker": "MovieMind\\appsettings.json",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind\\appsettings.json",
+              "RelativeToolTip": "MovieMind\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-10-22T13:22:46.308Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "RatingConfiguration.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\RatingConfiguration.cs",
+              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\RatingConfiguration.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\RatingConfiguration.cs",
+              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\RatingConfiguration.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T13:22:05.382Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "MovieActorConfiguration.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\MovieActorConfiguration.cs",
+              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\MovieActorConfiguration.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\MovieActorConfiguration.cs",
+              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\MovieActorConfiguration.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAQwBwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T13:21:36.807Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "UserConfiguration.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\UserConfiguration.cs",
+              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\UserConfiguration.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\UserConfiguration.cs",
+              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\UserConfiguration.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T13:17:52.294Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MovieConfiguration.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\MovieConfiguration.cs",
+              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\MovieConfiguration.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\MovieConfiguration.cs",
+              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\MovieConfiguration.cs",
+              "ViewState": "AgIAABEAAAAAAAAAAAAqwCQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T13:19:50.808Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind\\Program.cs",
+              "RelativeDocumentMoniker": "MovieMind\\Program.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind\\Program.cs",
+              "RelativeToolTip": "MovieMind\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T13:23:22.746Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "ActorConfiguration.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\ActorConfiguration.cs",
+              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\ActorConfiguration.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\ActorConfiguration.cs",
+              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\ActorConfiguration.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T13:21:10.685Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "GenreConfiguration.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\GenreConfiguration.cs",
+              "RelativeDocumentMoniker": "MovieMind.Infrastructure\\Configurations\\GenreConfiguration.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Configurations\\GenreConfiguration.cs",
+              "RelativeToolTip": "MovieMind.Infrastructure\\Configurations\\GenreConfiguration.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T13:20:42.275Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "MovieMind.Application.csproj",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Application\\MovieMind.Application.csproj",
+              "RelativeDocumentMoniker": "MovieMind.Application\\MovieMind.Application.csproj",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Application\\MovieMind.Application.csproj",
+              "RelativeToolTip": "MovieMind.Application\\MovieMind.Application.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-10-22T13:13:30.693Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "IApplicationDbContext.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Application\\IApplicationDbContext.cs",
+              "RelativeDocumentMoniker": "MovieMind.Application\\IApplicationDbContext.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Application\\IApplicationDbContext.cs",
+              "RelativeToolTip": "MovieMind.Application\\IApplicationDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-22T13:12:37.219Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "User.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Domain\\Entities\\User.cs",
+              "RelativeDocumentMoniker": "MovieMind.Domain\\Entities\\User.cs",
+              "ToolTip": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Domain\\Entities\\User.cs",
+              "RelativeToolTip": "MovieMind.Domain\\Entities\\User.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAsAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-05T12:42:28.836Z"
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 11,
               "Title": "ApplicationDbContext.cs",
               "DocumentMoniker": "C:\\Users\\user\\Desktop\\Proiect de an la apa\\MovieMind\\MovieMind.Infrastructure\\Persistence\\ApplicationDbContext.cs",
@@ -241,8 +232,7 @@
               "RelativeToolTip": "MovieMind.Infrastructure\\Persistence\\ApplicationDbContext.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-22T12:38:50.659Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-22T12:38:50.659Z"
             },
             {
               "$type": "Document",
@@ -254,8 +244,7 @@
               "RelativeToolTip": "MovieMind.Domain\\Entities\\Rating.cs",
               "ViewState": "AgIAAAIAAAAAAAAAAAAmwBYAAAAvAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-05T15:12:41.107Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-05T15:12:41.107Z"
             },
             {
               "$type": "Document",
@@ -267,8 +256,7 @@
               "RelativeToolTip": "MovieMind.Domain\\Entities\\Actor.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAABKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-05T15:12:28.828Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-05T15:12:28.828Z"
             },
             {
               "$type": "Document",
@@ -280,8 +268,7 @@
               "RelativeToolTip": "MovieMind.Domain\\Entities\\Genre.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAmAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-05T15:12:14.349Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-05T15:12:14.349Z"
             },
             {
               "$type": "Document",
@@ -293,8 +280,7 @@
               "RelativeToolTip": "MovieMind.Domain\\Entities\\Movie.cs",
               "ViewState": "AgIAAAsAAAAAAAAAAAAIwBAAAAAqAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-05T15:11:40.462Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-05T15:11:40.462Z"
             }
           ]
         }

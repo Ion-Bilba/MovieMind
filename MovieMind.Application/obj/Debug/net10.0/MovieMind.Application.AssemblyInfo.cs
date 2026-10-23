@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MovieMind.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2020e24d8f1f6b51532ebbb4d774e6b43838b5aa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+299b6c9014adccde31718f025dfa2e6112d329db")]
 [assembly: System.Reflection.AssemblyProductAttribute("MovieMind.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MovieMind.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
