@@ -19,4 +19,8 @@
     <ProjectReference Include="..\MovieMind.Infrastructure\MovieMind.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
 </Project>

@@ -1,0 +1,22 @@
+# Visual Studio / IDE folders
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build / Output folders
+bin/
+obj/
+
+# NuGet package folders
+packages/
+*.nupkg
+
+# User-specific files
+*.rsuser
+*.cache
+
+# Operating System generated files
+.DS_Store
+Thumbs.db

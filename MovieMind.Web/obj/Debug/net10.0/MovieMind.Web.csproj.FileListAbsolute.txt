@@ -95,3 +95,4 @@ C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Web\obj\Debug\net
 C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Web\obj\Debug\net10.0\MovieMind.Web.pdb
 C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Web\obj\Debug\net10.0\MovieMind.Web.genruntimeconfig.cache
 C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Web\obj\Debug\net10.0\ref\MovieMind.Web.dll
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Web\obj\Debug\net10.0\MovieMind.Web.sourcelink.json

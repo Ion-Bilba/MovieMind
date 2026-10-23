@@ -9,3 +9,10 @@ C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\ob
 C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\refint\MovieMind.Infrastructure.dll
 C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.pdb
 C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\ref\MovieMind.Infrastructure.dll
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMind.Infrastructure.sourcelink.json
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\bin\Debug\net10.0\MovieMind.Application.dll
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\bin\Debug\net10.0\MovieMind.Domain.dll
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\bin\Debug\net10.0\MovieMind.Application.pdb
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\bin\Debug\net10.0\MovieMind.Domain.pdb
+C:\Users\user\Desktop\Proiect de an la apa\MovieMind\MovieMind.Infrastructure\obj\Debug\net10.0\MovieMin.F8EE9493.Up2Date
