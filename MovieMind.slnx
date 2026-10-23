@@ -2,6 +2,6 @@
   <Project Path="MovieMind.Application/MovieMind.Application.csproj" />
   <Project Path="MovieMind.Domain/MovieMind.Domain.csproj" />
   <Project Path="MovieMind.Infrastructure/MovieMind.Infrastructure.csproj" />
-  <Project Path="MovieMind.Web/MovieMind.Web.csproj" />
+  <Project Path="MovieMind.Web/MovieMind.Web.csproj" Id="d8a921bc-d356-4708-b869-01f0483dc80d" />
   <Project Path="MovieMind/MovieMind.API.csproj" />
 </Solution>
