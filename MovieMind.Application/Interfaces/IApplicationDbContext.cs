@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MovieMind.Domain.Entities;
 
-namespace MovieMind.Application.Interface;
+namespace MovieMind.Application.Interfaces;
 
 public interface IApplicationDbContext
 {
