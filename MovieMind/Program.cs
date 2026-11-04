@@ -23,6 +23,7 @@ builder.Services.AddScoped<IApplicationDbContext>(provider =>
 
 builder.Services.AddScoped<IGenreService, GenreService>();
 builder.Services.AddScoped<IActorService, ActorService>();
+builder.Services.AddScoped<IMovieService, MovieService>();
 
 var app = builder.Build();
 
