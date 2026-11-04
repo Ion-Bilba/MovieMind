@@ -4,7 +4,7 @@ using MovieMind.Application.Services;
 using MovieMind.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
-
+/*https://localhost:7185/swagger*/
 
 builder.Services.AddControllers();
 
