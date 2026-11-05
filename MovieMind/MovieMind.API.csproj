@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -17,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MovieMind.Application\MovieMind.Application.csproj" />
     <ProjectReference Include="..\MovieMind.Infrastructure\MovieMind.Infrastructure.csproj" />
+    <ProjectReference Include="../MovieMind.Hosting/MovieMind.Hosting.csproj" />
   </ItemGroup>
 
   <ItemGroup>

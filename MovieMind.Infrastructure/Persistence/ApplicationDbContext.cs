@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MovieMind.Domain.Entities;
+using MovieMind.Application.Interface;
 
 namespace MovieMind.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Movie> Movies => Set<Movie>();
@@ -17,6 +18,8 @@ public class ApplicationDbContext : DbContext
         : base(options)
     {
     }
+
+    protected ApplicationDbContext(DbContextOptions options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

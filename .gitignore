@@ -20,3 +20,7 @@ packages/
 # Operating System generated files
 .DS_Store
 Thumbs.db
+
+# Local database and uploaded posters
+App_Data/
+__pycache__/

@@ -13,6 +13,7 @@ namespace MovieMind.Domain.Entities
         public Movie Movie { get; set; }=null!;
 
         public string? CharacterName { get; set; }
+        public int Position { get; set; }
 
 
     }
