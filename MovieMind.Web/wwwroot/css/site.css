@@ -317,7 +317,7 @@ fieldset > .field { margin-top: 16px; }
 .chip span:hover { color: var(--text); }
 .chip input:checked + span { background: var(--amber); border-color: var(--amber); color: var(--on-amber); }
 .chip input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
-.form-art { position: sticky; top: 0; align-self: start; display: grid; gap: 14px; }
+.form-art { align-self: start; display: grid; gap: 14px; min-width: 0; }
 .art-preview .poster { border-radius: 8px; }
 .art-panel { display: grid; gap: 12px; }
 .mini-label { font-size: 13px; font-weight: 600; color: var(--muted); }
@@ -331,6 +331,12 @@ fieldset > .field { margin-top: 16px; }
 .drop strong { color: var(--text); font-size: 14px; font-weight: 600; word-break: break-all; }
 .drop:hover, .drop.is-over { border-color: var(--amber); background: rgba(242, 181, 68, .06); }
 .drop .i { color: var(--accent-text); }
+.drop { position: relative; cursor: pointer; }
+.drop:focus-within { outline: 2px solid var(--amber); outline-offset: 3px; }
+/* Keep the native file input over the entire target so user clicks open the picker
+   directly, including clicks on the icon, text and padding. */
+.drop > .poster-file { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+.upload-status { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 .form-error { color: var(--danger); font-size: 13.5px; font-weight: 500; min-height: 1em; }
 .notice { margin: 16px 0 18px; padding: 12px 14px; border-radius: var(--r-md); background: rgba(242, 181, 68, .07); border: 1px solid rgba(242, 181, 68, .22); color: var(--muted); font-size: 13.5px; }
 .stack { display: grid; gap: 14px; }

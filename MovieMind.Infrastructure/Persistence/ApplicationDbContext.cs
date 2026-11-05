@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MovieMind.Domain.Entities;
 using MovieMind.Application.Interfaces;
 
@@ -18,6 +18,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         : base(options)
     {
     }
+
+    protected ApplicationDbContext(DbContextOptions options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

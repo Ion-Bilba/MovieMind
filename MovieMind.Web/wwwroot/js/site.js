@@ -1,6 +1,6 @@
-/* MovieMind — frontend v3.
+/* MovieMind — database-backed film catalog.
  * Vanilla JavaScript, no packages. Hash routing: #/  #/library  #/watchlist  #/studio  #/film/<id>
- * Films are stored in this browser (localStorage) until the team API is connected.
+ * Film metadata is saved through the same-origin API; watchlist and theme stay in this browser.
  * Sign in / register are UI only; they do not create accounts.
  */
 (() => {
@@ -33,7 +33,16 @@
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
   const str = (v, max = 300) => String(v ?? '').trim().slice(0, max);
   const list = (v, max = 40) => (Array.isArray(v) ? v : String(v || '').split(',')).map(x => str(x, 120)).filter(Boolean).slice(0, max);
-  const uid = () => (crypto?.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 9)}`);
+  const uid = () => {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+    else bytes.forEach((_, i) => { bytes[i] = Math.floor(Math.random() * 256); });
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    const hex = [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  };
   const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
   const lenClass = t => (t.length > 22 ? 'is-long' : t.length > 12 ? 'is-mid' : '');
   const runtime = m => (m ? (m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m}m`) : '');
@@ -45,6 +54,7 @@
 
   function safeImage(value) {
     const v = String(value || '').trim();
+    if (/^\/media\/posters\/[a-f0-9]{32}\.(jpg|png|webp)$/.test(v)) return v;
     if (/^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(v)) return v;
     try { const u = new URL(v); if (u.protocol === 'https:' || u.protocol === 'http:') return u.href; } catch { /* not a URL */ }
     return '';
@@ -109,7 +119,12 @@
     return films.map(normalize).filter(Boolean);
   }
   const state = {
-    films: loadFilms(),
+    films: [],
+    loading: true,
+    loadError: '',
+    saving: false,
+    imageBusy: false,
+    collectionBusy: false,
     watch: new Set(read(KEYS.watch, null) ?? read(LEGACY.watch, [])),
     seen: new Set(read(KEYS.seen, [])),
     route: { name: 'home', id: null },
@@ -119,24 +134,67 @@
     modal: null,
     draft: null,
   };
-  const ids = () => new Set(state.films.map(f => f.id));
-  state.watch = new Set([...state.watch].map(String).filter(id => ids().has(id)));
-  state.seen = new Set([...state.seen].map(String).filter(id => ids().has(id)));
-
   function persist(films = state.films) {
+    state.films = films;
     try {
-      localStorage.setItem(KEYS.films, JSON.stringify(films));
       localStorage.setItem(KEYS.watch, JSON.stringify([...state.watch]));
       localStorage.setItem(KEYS.seen, JSON.stringify([...state.seen]));
-      state.films = films;
-      return true;
-    } catch {
-      toast('Browser storage is full. Use an image link instead of an upload, or export and remove a few films.', 'error');
-      return false;
-    }
+    } catch { /* Film saves do not depend on browser storage. */ }
+    return true;
   }
   const film = id => state.films.find(f => f.id === id);
-  const storageKB = () => Math.round(((localStorage.getItem(KEYS.films) || '').length * 2) / 1024);
+
+  async function api(path, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(`${CFG.apiBaseUrl || '/api'}${path}`, { ...options, signal: controller.signal });
+      const body = response.status === 204 ? null : await response.json().catch(() => null);
+      if (!response.ok) {
+        const messages = body?.errors ? Object.values(body.errors).flat().join(' ') : '';
+        throw new Error(messages || body?.detail || body?.message || `The server returned ${response.status}. Try again.`);
+      }
+      return body;
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error('The server took too long to respond. Your form is still open; try again.');
+      if (error instanceof TypeError) throw new Error('Cannot reach the MovieMind server. Check the connection and try again.');
+      throw error;
+    } finally { clearTimeout(timeout); }
+  }
+  async function uploadPoster(blob) {
+    const data = new FormData();
+    data.append('file', blob, 'poster.jpg');
+    return (await api('/posters', { method: 'POST', body: data })).url;
+  }
+  async function saveFilm(entry) {
+    if (entry.poster.startsWith('data:')) {
+      entry = { ...entry, poster: await uploadPoster(await (await fetch(entry.poster)).blob()) };
+    }
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(entry.id)) entry = { ...entry, id: uid() };
+    return normalize(await api(`/films/${encodeURIComponent(entry.id)}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry),
+    }));
+  }
+  async function loadCatalog() {
+    state.loading = true;
+    state.loadError = '';
+    render();
+    try {
+      state.films = (await api('/films')).map(normalize).filter(Boolean);
+    } catch (error) { state.loadError = error.message; }
+    finally { state.loading = false; render(); }
+  }
+  async function saveCollection(entries) {
+    if (state.collectionBusy) throw new Error('A collection is already being saved. Wait for it to finish.');
+    state.collectionBusy = true;
+    // Commit each confirmed result so a partial import can be retried without losing successful saves.
+    try {
+      for (const entry of entries) {
+        const saved = await saveFilm(entry);
+        persist([saved, ...state.films.filter(f => f.id !== saved.id)]);
+      }
+    } finally { state.collectionBusy = false; }
+  }
 
   /* ----------------------------------------------------------------- icons */
   const ICONS = {
@@ -336,7 +394,7 @@
     </div></header>`;
   }
   function footer() {
-    return `<footer class="footer"><div class="wrap footer-inner"><span>MovieMind ${esc(CFG.version || '')}</span><span>${plural(state.films.length, 'film')} saved in this browser</span></div></footer>`;
+    return `<footer class="footer"><div class="wrap footer-inner"><span>MovieMind ${esc(CFG.version || '')}</span><span>${plural(state.films.length, 'film')} in the database</span></div></footer>`;
   }
 
   /* --------------------------------------------------------------- cards */
@@ -490,7 +548,7 @@
 
   function filmPage(id) {
     const f = film(id);
-    if (!f) return `<div class="wrap page"><div class="empty"><h3>This film is not in your collection.</h3><p>It may have been deleted, or the link is from another browser.</p><a class="btn btn-ghost btn-sm" href="#/library">Go to library</a></div></div>`;
+    if (!f) return `<div class="wrap page"><div class="empty"><h3>This film is not in your collection.</h3><p>It may have been deleted from the database.</p><a class="btn btn-ghost btn-sm" href="#/library">Go to library</a></div></div>`;
     const img = safeImage(f.poster);
     const seen = state.seen.has(f.id);
     const similar = state.films.filter(o => o.id !== f.id && o.genres.some(g => f.genres.includes(g)))
@@ -536,14 +594,13 @@
 
   function studio() {
     const rows = [...state.films].sort((a, b) => b.updatedAt - a.updatedAt);
-    const kb = storageKB();
-    const pct = clamp(Math.round((kb / 5000) * 100), 0, 100);
     return `<div class="wrap page">
       <div class="page-head"><div><h1 class="display">Studio</h1><p class="lede">Add, edit and remove films. Import or export the whole collection as a JSON file to move it to another computer.</p></div></div>
       <div class="studio-actions">
         <button class="btn btn-primary" data-act="add">${icon('plus', 16)}Add film</button>
         <button class="btn btn-ghost" data-act="demo">${icon('sparkle', 16)}Load demo collection</button>
         <span class="spacer"></span>
+        ${loadFilms().length ? '<button class="btn btn-ghost btn-sm" data-act="import-browser">Import browser films</button>' : ''}
         <button class="btn btn-ghost btn-sm" data-act="import">${icon('upload', 15)}Import</button>
         <button class="btn btn-ghost btn-sm" data-act="export" ${state.films.length ? '' : 'disabled'}>${icon('download', 15)}Export</button>
         <button class="btn btn-danger btn-sm" data-act="clear-all" ${state.films.length ? '' : 'disabled'}>${icon('trash', 15)}Delete all</button>
@@ -558,8 +615,7 @@
           <td class="t-actions"><button class="btn btn-ghost btn-xs" data-act="edit" data-id="${esc(f.id)}">Edit</button><button class="btn btn-danger btn-xs" data-act="delete" data-id="${esc(f.id)}">Delete</button></td>
         </tr>`).join('')}</tbody></table></div>`
         : `<div class="empty"><h3>No films yet.</h3><p>Start with the demo collection or add your first film.</p></div>`}
-      <div class="storage"><div><strong>Saved in this browser only.</strong> Films are not yet shared with the MovieMind server, so other computers will not see them. Use Export before clearing browser data.</div>
-        <div class="storage-meter" title="${kb} KB of about 5 MB"><div class="meter"><i style="width:${Math.max(2, pct)}%"></i></div><span>${kb} KB used of about 5 MB</span></div></div>
+      <div class="storage"><div><strong>Saved to the MovieMind database.</strong> Film details and posters are shared by this server. Your watchlist, watched status and theme stay in this browser. Export creates a backup of film details; back up uploaded poster files on the server as well.</div></div>
     </div>`;
   }
 
@@ -568,7 +624,7 @@
     return `<div class="overlay" data-overlay><div class="modal ${cls}" role="dialog" aria-modal="true" aria-labelledby="modal-title">${inner}</div></div>`;
   }
   function draftFrom(f) {
-    return f ? { ...f, cast: f.cast.map(c => ({ ...c })), art: { ...f.art }, mode: f.poster ? (f.poster.startsWith('data:') ? 'upload' : 'url') : 'art', upload: f.poster?.startsWith('data:') ? f.poster : '', url: f.poster && !f.poster.startsWith('data:') ? f.poster : '' }
+    return f ? { ...f, cast: f.cast.map(c => ({ ...c })), art: { ...f.art }, mode: f.poster ? (f.poster.startsWith('/media/') || f.poster.startsWith('data:') ? 'upload' : 'url') : 'art', upload: f.poster?.startsWith('/media/') || f.poster?.startsWith('data:') ? f.poster : '', url: f.poster && !f.poster.startsWith('/media/') && !f.poster.startsWith('data:') ? f.poster : '' }
       : { id: '', title: '', year: new Date().getFullYear(), genres: [], cast: [], writers: [], art: { palette: Math.floor(Math.random() * PALETTES.length), motif: Object.keys(MOTIFS)[Math.floor(Math.random() * 11)] }, mode: 'art', upload: '', url: '' };
   }
   function formModal() {
@@ -614,8 +670,11 @@
             <label class="field"><span>Motif</span><select name="motif">${Object.entries(MOTIFS).map(([k, l]) => `<option value="${k}" ${d.art.motif === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
           </div>
           <div class="art-panel" ${d.mode === 'upload' ? '' : 'hidden'} data-panel="upload">
-            <button type="button" class="drop" id="drop" data-act="pick-file">${icon('image', 24)}<strong>Choose an image</strong><span>or drop it here. JPG, PNG or WebP up to 10 MB. It is resized to save space.</span></button>
-            <input type="file" id="poster-file" accept="image/jpeg,image/png,image/webp" hidden>
+            <div class="drop" id="drop">
+              ${icon('image', 24)}<strong>Choose an image</strong><span id="poster-file-hint">or drop it here. JPG, PNG or WebP up to 10 MB. It is resized to save space.</span>
+              <input type="file" id="poster-file" accept="image/jpeg,image/png,image/webp" class="poster-file" aria-label="Choose a poster image" aria-describedby="poster-file-hint upload-status">
+            </div>
+            <p id="upload-status" class="upload-status" role="status" aria-live="polite">${d.upload ? 'Poster uploaded. Save the film to keep it.' : ''}</p>
           </div>
           <div class="art-panel" ${d.mode === 'url' ? '' : 'hidden'} data-panel="url">
             <label class="field"><span>Image link</span><input name="posterUrl" type="url" value="${esc(d.url)}" placeholder="https://…/poster.jpg"><small>Use an HTTPS link to an image you are allowed to use.</small></label>
@@ -701,6 +760,7 @@
     focusEl?.focus();
   }
   function closeModal() {
+    if (state.saving) return;
     state.modal = null;
     state.draft = null;
     renderModal();
@@ -710,29 +770,72 @@
 
   /* ------------------------------------------------------------- actions */
   async function resizeImage(file) {
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Choose a JPG, PNG or WebP image.');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) &&
+        !(file.type === '' && /\.(jpe?g|png|webp)$/i.test(file.name))) {
+      throw new Error('Choose a JPG, PNG or WebP image.');
+    }
+    if (!file.size) throw new Error('This image is empty. Choose another one.');
     if (file.size > 10 * 1024 * 1024) throw new Error('This image is larger than 10 MB. Choose a smaller one.');
-    const bmp = await createImageBitmap(file);
+    let bitmap;
+    let objectUrl;
     try {
-      const scale = Math.min(1, 520 / bmp.width, 780 / bmp.height);
-      const c = document.createElement('canvas');
-      c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#101826'; ctx.fillRect(0, 0, c.width, c.height);
-      ctx.drawImage(bmp, 0, 0, c.width, c.height);
-      return c.toDataURL('image/jpeg', 0.8);
-    } finally { bmp.close?.(); }
+      if (typeof createImageBitmap === 'function') {
+        try { bitmap = await createImageBitmap(file); } catch { /* Fall back to the browser image decoder. */ }
+      }
+      if (!bitmap) {
+        objectUrl = URL.createObjectURL(file);
+        bitmap = await new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = () => reject(new Error('This image could not be read. Choose another JPG, PNG or WebP.'));
+          image.src = objectUrl;
+        });
+      }
+      const width = bitmap.naturalWidth || bitmap.width;
+      const height = bitmap.naturalHeight || bitmap.height;
+      if (!width || !height || width * height > 40000000) throw new Error('Choose an image smaller than 40 megapixels.');
+      const scale = Math.min(1, 520 / width, 780 / height);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Your browser could not prepare this image. Try another browser.');
+      context.fillStyle = '#101826';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return await new Promise((resolve, reject) => canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('This image could not be resized.')), 'image/jpeg', 0.8));
+    } finally {
+      bitmap?.close?.();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    }
   }
   async function useFile(file) {
-    if (!file || !state.draft) return;
+    if (!file || !state.draft || state.imageBusy) return;
+    const draft = state.draft;
+    const status = $('#upload-status');
+    const submit = $('#film-form [type="submit"]');
+    state.imageBusy = true;
+    if (submit) submit.disabled = true;
+    if (status) { status.textContent = 'Resizing and uploading image…'; status.classList.remove('form-error'); }
     try {
-      state.draft.upload = await resizeImage(file);
-      state.draft.mode = 'upload';
+      const url = await uploadPoster(await resizeImage(file));
+      if (state.draft !== draft) return;
+      draft.upload = url;
+      draft.mode = 'upload';
       updatePreview();
       const drop = $('#drop strong'); if (drop) drop.textContent = file.name;
-    } catch (e) { toast(e.message || 'This image could not be read.', 'error'); }
+      if (status) status.textContent = 'Poster uploaded. Save the film to keep it.';
+    } catch (error) {
+      if (status) { status.textContent = error.message || 'This image could not be read.'; status.classList.add('form-error'); }
+    } finally {
+      state.imageBusy = false;
+      if (submit?.isConnected) submit.disabled = false;
+      const input = $('#poster-file'); if (input) input.value = '';
+    }
   }
-  function submitFilm(form) {
+  async function submitFilm(form) {
+    if (state.saving || state.imageBusy) return false;
     syncDraft(form);
     const data = new FormData(form);
     const err = $('#form-error');
@@ -743,13 +846,16 @@
     const duration = data.get('duration') === '' ? 0 : Number(data.get('duration'));
     if (!title) return fail('Enter the film title.', 'title');
     if (!Number.isInteger(year) || year < 1888 || year > 2100) return fail('Enter a release year between 1888 and 2100.', 'year');
-    if (Number.isNaN(duration) || duration < 0 || duration > 999) return fail('Runtime must be between 0 and 999 minutes.', 'duration');
+    if (!Number.isInteger(duration) || duration < 0 || duration > 999) return fail('Runtime must be between 0 and 999 minutes.', 'duration');
     if (Number.isNaN(rating) || rating < 0 || rating > 10) return fail('Rating must be between 0 and 10.', 'rating');
     const trailer = str(data.get('trailerUrl'), 2000);
     if (trailer && !safeLink(trailer)) return fail('The trailer link must start with https:// or http://.', 'trailerUrl');
     const d = state.draft;
     let posterValue = '';
-    if (d.mode === 'upload') posterValue = d.upload;
+    if (d.mode === 'upload') {
+      posterValue = d.upload;
+      if (!posterValue) return fail('Choose an image or select Artwork.', 'title');
+    }
     if (d.mode === 'url') {
       posterValue = safeImage(data.get('posterUrl'));
       if (str(data.get('posterUrl')) && !posterValue) return fail('The image link must start with https:// or http://.', 'posterUrl');
@@ -764,14 +870,26 @@
       trailerUrl: trailer, poster: posterValue, art: { ...d.art },
       createdAt: existing?.createdAt || Date.now(), updatedAt: Date.now(),
     });
-    const next = existing ? state.films.map(f => (f.id === entry.id ? entry : f)) : [entry, ...state.films];
-    if (!persist(next)) return false;
+    // Keep the same ID if a response is lost and the user retries the save.
+    d.id = entry.id;
+    const button = form.querySelector('[type="submit"]');
+    state.saving = true;
+    button.disabled = true;
+    err.textContent = 'Saving…';
+    let saved;
+    try {
+      saved = await saveFilm(entry);
+      persist(existing ? state.films.map(f => f.id === saved.id ? saved : f) : [saved, ...state.films]);
+    } catch (error) {
+      err.textContent = error.message;
+      return false;
+    } finally { state.saving = false; button.disabled = false; }
     closeModal();
-    if (existing) { render(); toast(`Saved changes to ${entry.title}.`, 'ok'); }
-    else { location.hash = `#/film/${encodeURIComponent(entry.id)}`; toast(`Added ${entry.title} to your library.`, 'ok'); }
+    if (existing) { render(); toast(`Saved changes to ${saved.title}.`, 'ok'); }
+    else { location.hash = `#/film/${encodeURIComponent(saved.id)}`; toast(`Added ${saved.title} to your library.`, 'ok'); }
     return true;
   }
-  function loadDemo() {
+  async function loadDemo() {
     const demo = Array.isArray(window.MOVIEMIND_DEMO) ? window.MOVIEMIND_DEMO : [];
     if (!demo.length) { toast('The demo file (demo-films.js) is not loaded.', 'error'); return; }
     const have = new Set(state.films.map(f => `${f.title.toLowerCase()}|${f.year}`));
@@ -779,7 +897,7 @@
     const fresh = demo.filter(d => !have.has(`${d.title.toLowerCase()}|${d.year}`))
       .map((d, i) => normalize({ ...d, id: uid(), createdAt: now - i * 1000, updatedAt: now - i * 1000 }));
     if (!fresh.length) { toast('The demo films are already in your library.'); return; }
-    if (!persist([...fresh, ...state.films])) return;
+    try { await saveCollection(fresh); } catch (error) { render(); toast(error.message, 'error'); return; }
     state.hero = 0;
     render();
     toast(`Added ${plural(fresh.length, 'demo film')} to your library.`, 'ok', { href: '#/library', label: 'Open library' });
@@ -798,10 +916,9 @@
       const parsed = JSON.parse(await file.text());
       const incoming = (Array.isArray(parsed) ? parsed : parsed?.films || []).map(normalize).filter(Boolean);
       if (!incoming.length) throw new Error('empty');
-      const map = new Map(state.films.map(f => [f.id, f]));
-      incoming.forEach(f => map.set(f.id, f));
-      if (persist([...map.values()])) { render(); toast(`Imported ${plural(incoming.length, 'film')}.`, 'ok'); }
-    } catch { toast('This file is not a MovieMind export. Choose a .json file created with Export.', 'error'); }
+      await saveCollection(incoming);
+      render(); toast(`Imported ${plural(incoming.length, 'film')}.`, 'ok');
+    } catch (error) { render(); toast(error.message === 'empty' || error instanceof SyntaxError ? 'Choose a MovieMind JSON export containing films.' : error.message, 'error'); }
   }
   function toggleWatch(id) {
     const f = film(id);
@@ -823,20 +940,33 @@
     edit: el => { const f = film(el.dataset.id); if (f) { state.draft = draftFrom(f); openModal({ type: 'form' }); } },
     delete: el => {
       const f = film(el.dataset.id); if (!f) return;
-      confirmThen(`Delete ${f.title}?`, 'The film, its poster and its watchlist entry will be removed from this browser. This cannot be undone.', 'Delete film', () => {
+      confirmThen(`Delete ${f.title}?`, 'This film will be removed from the shared database. This cannot be undone.', 'Delete film', async () => {
+        try { await api(`/films/${encodeURIComponent(f.id)}`, { method: 'DELETE' }); }
+        catch (error) { toast(error.message, 'error'); return; }
         state.watch.delete(f.id); state.seen.delete(f.id);
         if (persist(state.films.filter(x => x.id !== f.id))) { toast(`Deleted ${f.title}.`); if (state.route.name === 'film') location.hash = '#/library'; else render(); }
       });
     },
-    'clear-all': () => confirmThen('Delete all films?', `All ${plural(state.films.length, 'film')} will be removed from this browser. Export first if you want a backup.`, 'Delete all', () => {
-      state.watch.clear(); state.seen.clear();
-      if (persist([])) { render(); toast('Deleted all films.'); }
+    'clear-all': () => confirmThen('Delete all films?', `All ${plural(state.films.length, 'film')} will be removed from the shared database. Export first if you want a backup.`, 'Delete all', async () => {
+      try {
+        for (const f of [...state.films]) {
+          await api(`/films/${encodeURIComponent(f.id)}`, { method: 'DELETE' });
+          state.watch.delete(f.id); state.seen.delete(f.id);
+          persist(state.films.filter(x => x.id !== f.id));
+        }
+        render(); toast('Deleted all films.');
+      } catch (error) { render(); toast(error.message, 'error'); }
     }),
     'confirm-yes': () => { const fn = state.pending; state.pending = null; closeModal(); fn?.(); },
     close: () => closeModal(),
     watch: el => toggleWatch(el.dataset.id),
     seen: el => { const id = el.dataset.id; state.seen.has(id) ? state.seen.delete(id) : state.seen.add(id); if (persist()) render(); },
     demo: () => loadDemo(),
+    retry: () => loadCatalog(),
+    'import-browser': async () => {
+      try { await saveCollection(loadFilms()); render(); toast('Browser films saved to the database.', 'ok'); }
+      catch (error) { render(); toast(error.message, 'error'); }
+    },
     export: () => exportJSON(),
     import: () => $('#import-file')?.click(),
     account: () => openModal({ type: 'auth', tab: 'signin' }),
@@ -857,7 +987,6 @@
       $$('.art-panel').forEach(p => { p.hidden = p.dataset.panel !== state.draft.mode; });
       updatePreview();
     },
-    'pick-file': () => $('#poster-file')?.click(),
   };
   function swapHero() {
     const hero = $('#hero');
@@ -883,6 +1012,11 @@
   const app = $('#moviemind-app');
   function render() {
     if (!app) return;
+    if (state.loading) { app.innerHTML = '<div class="boot" role="status">Loading your film library…</div>'; return; }
+    if (state.loadError) {
+      app.innerHTML = `<div class="wrap page"><h1>Could not load the library</h1><p role="alert">${esc(state.loadError)}</p><button class="btn btn-primary" data-act="retry">Try again</button></div>`;
+      return;
+    }
     const r = state.route;
     const page = r.name === 'library' ? catalogPage('library') : r.name === 'watchlist' ? catalogPage('watchlist') : r.name === 'studio' ? studio() : r.name === 'film' ? filmPage(r.id) : home();
     app.innerHTML = `<a class="skip" href="#main">Skip to content</a>${topbar()}<main id="main" tabindex="-1" class="main main-${r.name}">${page}</main>${footer()}`;
@@ -961,7 +1095,12 @@
       else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
     }
   });
-  window.addEventListener('storage', e => { if (Object.values(KEYS).includes(e.key)) { state.films = loadFilms(); render(); } });
+  window.addEventListener('storage', e => {
+    if (e.key === KEYS.watch || e.key === KEYS.seen || e.key === null) {
+      state.watch = new Set(read(KEYS.watch, [])); state.seen = new Set(read(KEYS.seen, [])); render();
+    }
+  });
   window.addEventListener('hashchange', onRoute);
   onRoute();
+  loadCatalog();
 })();

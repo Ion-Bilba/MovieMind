@@ -18,7 +18,7 @@ public class MovieConfiguration : IEntityTypeConfiguration<Movie>
 
         builder.Property(m => m.Description)
             .IsRequired()
-            .HasMaxLength(2000);
+            .HasMaxLength(3000);
 
         builder.Property(m => m.ReleaseYear)
             .IsRequired();
@@ -33,7 +33,17 @@ public class MovieConfiguration : IEntityTypeConfiguration<Movie>
             .IsRequired();
 
         builder.Property(m => m.PosterUrl)
-            .HasMaxLength(500);
+            .HasMaxLength(2000);
+
+        builder.Property(m => m.OriginalTitle).HasMaxLength(140);
+        builder.Property(m => m.AgeRating).HasMaxLength(20);
+        builder.Property(m => m.Director).HasMaxLength(140);
+        builder.Property(m => m.Composer).HasMaxLength(120);
+        builder.Property(m => m.Awards).HasMaxLength(800);
+        builder.Property(m => m.Country).HasMaxLength(140);
+        builder.Property(m => m.Language).HasMaxLength(140);
+        builder.Property(m => m.TrailerUrl).HasMaxLength(2000);
+        builder.Property(m => m.ArtMotif).HasMaxLength(20);
 
         builder.HasMany(m => m.Genres)
             .WithMany(g => g.Movies)
