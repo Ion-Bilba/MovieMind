@@ -1,10 +1,12 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
 }
-
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div id="moviemind-app">
+    <div class="boot" role="status">
+        <span class="boot-mark" aria-hidden="true"></span>
+        <span>Loading MovieMind…</span>
+    </div>
 </div>
+<noscript><p class="no-script">MovieMind needs JavaScript to show your film library.</p></noscript>
