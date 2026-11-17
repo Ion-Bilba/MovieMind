@@ -22,6 +22,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
+app.UseCors("MovieMindWeb");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapMovieMind();

@@ -6,16 +6,18 @@ Actualizat: 5 noiembrie 2026. Branch-ul de integrare al MVP-ului: `Dev`.
 
 Ai nevoie de .NET 10 SDK. Rulează din directorul principal al proiectului:
 
-```sh
-cd /Users/muntean/MovieMind
-git status
-dotnet build MovieMind.slnx
+În Visual Studio pornește proiectele **MovieMind.API** și **MovieMind.Web** simultan
+(Multiple startup projects). Din două terminale, din folderul soluției:
+
+```powershell
+dotnet run --project MovieMind --launch-profile http
 dotnet run --project MovieMind.Web --launch-profile http
 ```
 
-Deschide **http://localhost:5104**. Oprești aplicația cu **Ctrl+C** în terminal.
-`MovieMind.Web` servește atât interfața, cât și endpoint-urile backend; pentru
-utilizarea normală este suficient acest singur proces.
+API-ul rulează la **http://localhost:5048** (Swagger: **/swagger**), iar interfața la
+**http://localhost:5104**. Oprește ambele procese cu **Ctrl+C** în terminalele lor.
+`MovieMind.Web` servește doar interfața; toate endpoint-urile și autentificarea sunt
+în proiectul **MovieMind.API**.
 
 În Development, migrațiile SQLite se aplică automat la pornire. Dacă este prima
 pornire pe un calculator nou, se creează o bază goală în `App_Data/moviemind.db`.
@@ -48,7 +50,9 @@ De reținut:
 - Imaginile încărcate sunt fișiere în `App_Data/posters/`; în tabel se salvează URL-ul.
   După upload trebuie să salvezi și formularul filmului.
 - Watchlist-ul, starea „văzut” și tema rămân în browser, separat de catalogul comun.
-- Autentificarea nu este implementată. Catalogul este comun utilizatorilor serverului.
+- Autentificarea JWT este implementată în `MovieMind.API`: register, login și role claims.
+  Interfața trimite tokenul în antetul Bearer. Scrierea catalogului și upload-ul sunt
+  permise doar rolului `Admin`; conturile noi primesc rolul `User`.
 - Imaginile nefolosite sunt păstrate și după anularea unui formular sau înlocuirea
   unui poster; nu există încă o operație automată de curățare.
 - SQL Server are migrațiile generate și verificate ca model/script, dar execuția lor
@@ -129,7 +133,7 @@ backend-ul actualizează și relațiile dintre tabele.
 | `MovieGenres` | Legăturile dintre filme și genuri. |
 | `Actors` | Actorii folosiți în distribuție. |
 | `MovieActors` | Filmul, actorul, personajul (`CharacterName`) și ordinea (`Position`). |
-| `Users` | Structura de utilizatori; autentificarea nu este încă legată la interfață. |
+| `Users` | Conturi, hash-uri de parolă și roluri; parola în clar nu se salvează. |
 | `Ratings` | Structura pentru evaluările utilizatorilor, cu scoruri 1–5. |
 | `__EFMigrationsHistory` | Migrațiile deja aplicate bazei de date. |
 | `__EFMigrationsLock` | Tabel tehnic folosit de EF la aplicarea migrațiilor SQLite. |

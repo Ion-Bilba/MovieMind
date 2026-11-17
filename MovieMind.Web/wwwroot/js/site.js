@@ -1,7 +1,7 @@
 /* MovieMind — database-backed film catalog.
  * Vanilla JavaScript, no packages. Hash routing: #/  #/library  #/watchlist  #/studio  #/film/<id>
- * Film metadata is saved through the same-origin API; watchlist and theme stay in this browser.
- * Sign in / register are UI only; they do not create accounts.
+ * Film metadata is saved through the MovieMind API; watchlist and theme stay in this browser.
+ * Sign in and registration use the API with a JWT stored for this browser session.
  */
 (() => {
   'use strict';
@@ -50,6 +50,10 @@
   const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
   const rng = seed => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const read = (key, fallback) => { try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? fallback; } catch { return fallback; } };
+  const readSession = key => { try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch { return null; } };
+  let authSession = readSession('moviemind.auth');
+  const isAdmin = () => authSession?.user?.role === 'Admin';
+  const apiImage = value => { const image = safeImage(value); return image.startsWith('/media/posters/') ? `${CFG.apiOrigin || ''}${image}` : image; };
   const trailerFor = f => f.trailerUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(`${f.title} ${f.year} official trailer`)}`;
 
   function safeImage(value) {
@@ -148,7 +152,9 @@
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
     try {
-      const response = await fetch(`${CFG.apiBaseUrl || '/api'}${path}`, { ...options, signal: controller.signal });
+      const headers = new Headers(options.headers || {});
+      if (authSession?.accessToken) headers.set('Authorization', `Bearer ${authSession.accessToken}`);
+      const response = await fetch(`${CFG.apiBaseUrl || '/api'}${path}`, { ...options, headers, signal: controller.signal });
       const body = response.status === 204 ? null : await response.json().catch(() => null);
       if (!response.ok) {
         const messages = body?.errors ? Object.values(body.errors).flat().join(' ') : '';
@@ -362,7 +368,7 @@
     </svg>`;
   }
   function poster(f, cls = '') {
-    const img = safeImage(f.poster);
+    const img = apiImage(f.poster);
     return `<div class="poster ${cls}">${img ? `<img src="${esc(img)}" alt="${esc(f.title)} poster" loading="lazy" decoding="async">` : posterSVG(f)}</div>`;
   }
 
@@ -384,10 +390,10 @@
     const active = state.route.name === 'film' ? 'library' : state.route.name;
     return `<header class="topbar"><div class="wrap topbar-inner">
       <a class="brand" href="#/" aria-label="MovieMind home"><span class="brand-mark" aria-hidden="true"></span>MovieMind</a>
-      <nav class="nav" aria-label="Main">${NAV.map(([name, href, label]) => `<a href="${href}" class="${active === name ? 'is-active' : ''}" ${active === name ? 'aria-current="page"' : ''}>${label}${name === 'watchlist' && state.watch.size ? `<span class="count" data-watch-count>${state.watch.size}</span>` : ''}</a>`).join('')}</nav>
+      <nav class="nav" aria-label="Main">${NAV.filter(([name]) => name !== 'studio' || isAdmin()).map(([name, href, label]) => `<a href="${href}" class="${active === name ? 'is-active' : ''}" ${active === name ? 'aria-current="page"' : ''}>${label}${name === 'watchlist' && state.watch.size ? `<span class="count" data-watch-count>${state.watch.size}</span>` : ''}</a>`).join('')}</nav>
       <div class="top-actions">
         <button class="search-trigger" data-act="palette" aria-label="Search films (Ctrl+K)">${icon('search', 17)}<span>Search films</span><kbd>Ctrl K</kbd></button>
-        <button class="btn btn-primary btn-sm hide-xs" data-act="add">${icon('plus', 16)}Add film</button>
+        ${isAdmin() ? `<button class="btn btn-primary btn-sm hide-xs" data-act="add">${icon('plus', 16)}Add film</button>` : ''}
         ${themeSwitch()}
         <button class="icon-btn" data-act="account" aria-label="Sign in or create an account">${icon('user', 19)}</button>
       </div>
@@ -440,7 +446,7 @@
   function heroHTML() {
     const picks = featuredFilms();
     const f = picks[((state.hero % picks.length) + picks.length) % picks.length];
-    const img = safeImage(f.poster);
+    const img = apiImage(f.poster);
     return `<section class="hero" id="hero" aria-label="Featured film">
       <div class="hero-backdrop" aria-hidden="true">${img ? `<img src="${esc(img)}" alt="">` : posterSVG(f)}</div>
       <div class="wrap hero-inner">
@@ -549,7 +555,7 @@
   function filmPage(id) {
     const f = film(id);
     if (!f) return `<div class="wrap page"><div class="empty"><h3>This film is not in your collection.</h3><p>It may have been deleted from the database.</p><a class="btn btn-ghost btn-sm" href="#/library">Go to library</a></div></div>`;
-    const img = safeImage(f.poster);
+    const img = apiImage(f.poster);
     const seen = state.seen.has(f.id);
     const similar = state.films.filter(o => o.id !== f.id && o.genres.some(g => f.genres.includes(g)))
       .map(o => [o, o.genres.filter(g => f.genres.includes(g)).length + (o.director && o.director === f.director ? 2 : 0)])
@@ -585,7 +591,7 @@
         </div>
         <aside class="film-side">
           <dl class="facts-list">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
-          <div class="side-actions"><button class="btn btn-ghost btn-sm" data-act="edit" data-id="${esc(f.id)}">${icon('edit', 15)}Edit film</button><button class="btn btn-danger btn-sm" data-act="delete" data-id="${esc(f.id)}">${icon('trash', 15)}Delete</button></div>
+          ${isAdmin() ? `<div class="side-actions"><button class="btn btn-ghost btn-sm" data-act="edit" data-id="${esc(f.id)}">${icon('edit', 15)}Edit film</button><button class="btn btn-danger btn-sm" data-act="delete" data-id="${esc(f.id)}">${icon('trash', 15)}Delete</button></div>` : ''}
         </aside>
       </div>
       <div class="wrap">${shelf('More like this', similar, '')}</div>
@@ -593,6 +599,7 @@
   }
 
   function studio() {
+    if (!isAdmin()) return `<div class="wrap page"><h1 class="display">Administrator access required</h1><p class="lede">Sign in with an administrator account to manage the shared catalog.</p><button class="btn btn-primary" data-act="account">Sign in</button></div>`;
     const rows = [...state.films].sort((a, b) => b.updatedAt - a.updatedAt);
     return `<div class="wrap page">
       <div class="page-head"><div><h1 class="display">Studio</h1><p class="lede">Add, edit and remove films. Import or export the whole collection as a JSON file to move it to another computer.</p></div></div>
@@ -707,14 +714,14 @@
     return modalShell(`<div class="modal-head"><h2 id="modal-title">${reg ? 'Create an account' : 'Sign in'}</h2><button class="icon-btn" data-act="close" aria-label="Close">${icon('close')}</button></div>
       <div class="modal-body">
         <div class="seg wide" role="tablist"><button role="tab" data-act="auth-tab" data-tab="signin" aria-selected="${!reg}">Sign in</button><button role="tab" data-act="auth-tab" data-tab="register" aria-selected="${reg}">Create account</button></div>
-        <p class="notice">Accounts are not connected yet. This form will work once the MovieMind server API is ready. Nothing you type here is saved.</p>
+        ${authSession?.user ? `<p class="notice">Signed in as <strong>${esc(authSession.user.userName)}</strong> (${esc(authSession.user.role)}).</p><button class="btn btn-ghost full" type="button" data-act="sign-out">Sign out</button>` : `<p class="notice">${reg ? 'Create your MovieMind account.' : 'Use your email or username to sign in.'}</p>
         <form id="auth-form" class="stack">
-          ${reg ? '<label class="field"><span>Username</span><input name="username" autocomplete="username" required></label>' : ''}
-          <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
-          <label class="field"><span>Password</span><input name="password" type="password" minlength="8" autocomplete="${reg ? 'new-password' : 'current-password'}" required></label>
+          ${reg ? '<label class="field"><span>Username</span><input name="username" autocomplete="username" minlength="3" maxlength="50" required></label>' : ''}
+          <label class="field"><span>${reg ? 'Email' : 'Email or username'}</span><input name="identifier" type="${reg ? 'email' : 'text'}" autocomplete="${reg ? 'email' : 'username'}" required></label>
+          <label class="field"><span>Password</span><input name="password" type="password" minlength="8" maxlength="128" autocomplete="${reg ? 'new-password' : 'current-password'}" required></label>
           <p class="form-error" id="auth-error" role="alert"></p>
           <button class="btn btn-primary full" type="submit">${reg ? 'Create account' : 'Sign in'}</button>
-        </form>
+        </form>`}
       </div>`, 'modal-sm');
   }
   function confirmModal() {
@@ -936,9 +943,10 @@
   }
 
   const handlers = {
-    add: () => { state.draft = draftFrom(null); openModal({ type: 'form' }); },
-    edit: el => { const f = film(el.dataset.id); if (f) { state.draft = draftFrom(f); openModal({ type: 'form' }); } },
+    add: () => { if (!isAdmin()) { toast(authSession?.user ? 'Only an administrator can edit the shared catalog.' : 'Sign in as an administrator to edit the catalog.', 'error'); return; } state.draft = draftFrom(null); openModal({ type: 'form' }); },
+    edit: el => { if (!isAdmin()) { toast('Only an administrator can edit the shared catalog.', 'error'); return; } const f = film(el.dataset.id); if (f) { state.draft = draftFrom(f); openModal({ type: 'form' }); } },
     delete: el => {
+      if (!isAdmin()) { toast('Only an administrator can edit the shared catalog.', 'error'); return; }
       const f = film(el.dataset.id); if (!f) return;
       confirmThen(`Delete ${f.title}?`, 'This film will be removed from the shared database. This cannot be undone.', 'Delete film', async () => {
         try { await api(`/films/${encodeURIComponent(f.id)}`, { method: 'DELETE' }); }
@@ -947,7 +955,7 @@
         if (persist(state.films.filter(x => x.id !== f.id))) { toast(`Deleted ${f.title}.`); if (state.route.name === 'film') location.hash = '#/library'; else render(); }
       });
     },
-    'clear-all': () => confirmThen('Delete all films?', `All ${plural(state.films.length, 'film')} will be removed from the shared database. Export first if you want a backup.`, 'Delete all', async () => {
+    'clear-all': () => { if (!isAdmin()) { toast('Only an administrator can edit the shared catalog.', 'error'); return; } confirmThen('Delete all films?', `All ${plural(state.films.length, 'film')} will be removed from the shared database. Export first if you want a backup.`, 'Delete all', async () => {
       try {
         for (const f of [...state.films]) {
           await api(`/films/${encodeURIComponent(f.id)}`, { method: 'DELETE' });
@@ -956,12 +964,12 @@
         }
         render(); toast('Deleted all films.');
       } catch (error) { render(); toast(error.message, 'error'); }
-    }),
+    }); },
     'confirm-yes': () => { const fn = state.pending; state.pending = null; closeModal(); fn?.(); },
     close: () => closeModal(),
     watch: el => toggleWatch(el.dataset.id),
     seen: el => { const id = el.dataset.id; state.seen.has(id) ? state.seen.delete(id) : state.seen.add(id); if (persist()) render(); },
-    demo: () => loadDemo(),
+    demo: () => { if (!isAdmin()) { toast('Only an administrator can load films into the shared catalog.', 'error'); return; } loadDemo(); },
     retry: () => loadCatalog(),
     'import-browser': async () => {
       try { await saveCollection(loadFilms()); render(); toast('Browser films saved to the database.', 'ok'); }
@@ -970,6 +978,7 @@
     export: () => exportJSON(),
     import: () => $('#import-file')?.click(),
     account: () => openModal({ type: 'auth', tab: 'signin' }),
+    'sign-out': () => { try { sessionStorage.removeItem('moviemind.auth'); } catch { /* optional browser storage */ } authSession = null; closeModal(); render(); toast('You have signed out.'); },
     'auth-tab': el => { state.modal.tab = el.dataset.tab; renderModal(); },
     palette: () => openModal({ type: 'palette' }),
     theme: () => applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'),
@@ -1058,9 +1067,32 @@
     if (t.id === 'import-file' && t.files?.[0]) { importJSON(t.files[0]); t.value = ''; }
     if (t.form?.id === 'film-form' && ['palette', 'motif'].includes(t.name)) { syncDraft(t.form); updatePreview(); }
   });
+  async function submitAuth(form) {
+    const errorBox = $('#auth-error');
+    const button = form.querySelector('[type="submit"]');
+    const isRegister = state.modal?.tab === 'register';
+    const data = new FormData(form);
+    if (button) button.disabled = true;
+    if (errorBox) errorBox.textContent = '';
+    try {
+      const result = await api(isRegister ? '/auth/register' : '/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(isRegister
+          ? { userName: data.get('username'), email: data.get('identifier'), password: data.get('password') }
+          : { identifier: data.get('identifier'), password: data.get('password') }),
+      });
+      authSession = { accessToken: result.accessToken, user: { id: result.id, userName: result.userName, email: result.email, role: result.role }, expiresAtUtc: result.expiresAtUtc };
+      try { sessionStorage.setItem('moviemind.auth', JSON.stringify(authSession)); } catch { /* token remains in memory for this page */ }
+      closeModal(); render();
+      toast(isRegister ? 'Account created. You are now signed in.' : `Welcome, ${authSession.user.userName}.`, 'ok');
+    } catch (error) {
+      if (errorBox) errorBox.textContent = error.message;
+      if (button?.isConnected) button.disabled = false;
+    }
+  }
   document.addEventListener('submit', e => {
     if (e.target.id === 'film-form') { e.preventDefault(); submitFilm(e.target); }
-    if (e.target.id === 'auth-form') { e.preventDefault(); $('#auth-error').textContent = 'Sign in is not available yet: the MovieMind server does not have account endpoints. No account was created.'; }
+    if (e.target.id === 'auth-form') { e.preventDefault(); submitAuth(e.target); }
   });
   ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { const d = e.target.closest?.('#drop'); if (d) { e.preventDefault(); d.classList.add('is-over'); } }));
   ['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => {

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MovieMind.Domain.Enums;
 using MovieMind.Application.Interfaces;
 using MovieMind.Application.Dtos.Genres;
 
@@ -36,6 +38,7 @@ public class GenresController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<ActionResult<GenreDto>> Create(CreateGenreRequest request, CancellationToken cancellationToken)
     {
         if (await _genreService.NameExistsAsync(request.Name, null, cancellationToken))
@@ -49,6 +52,7 @@ public class GenresController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<ActionResult<GenreDto>> Update(
      Guid id,
      UpdateGenreRequest request,
@@ -78,6 +82,7 @@ public class GenresController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var deleted = await _genreService.DeleteAsync(id, cancellationToken);

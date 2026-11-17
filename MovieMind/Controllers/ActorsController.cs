@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MovieMind.Domain.Enums;
 using MovieMind.Application.Dtos.Actors;
 using MovieMind.Application.Interfaces;
 
@@ -33,6 +35,7 @@ public class ActorsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<ActionResult<ActorDto>> Create(
         CreateActor request,
         CancellationToken cancellationToken)
@@ -49,6 +52,7 @@ public class ActorsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<ActionResult<ActorDto>> Update(
         Guid id,
         UpdateActor request,
@@ -73,6 +77,7 @@ public class ActorsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<IActionResult> Delete(
         Guid id,
         CancellationToken cancellationToken)
