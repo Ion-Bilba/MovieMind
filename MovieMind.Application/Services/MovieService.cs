@@ -14,18 +14,56 @@ public class MovieService : IMovieService
         _context = context;
     }
 
-    public async Task<List<MovieDto>> GetAllAsync(
+    public async Task<PagedResult<MovieDto>> SearchAsync(
+        MovieSearchRequest request,
         CancellationToken cancellationToken = default)
     {
-        var movies = await _context.Movies
-            .AsNoTracking()
+        var pageNumber = Math.Max(request.PageNumber, 1);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var query = _context.Movies.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var searchTerm = request.SearchTerm.Trim();
+            query = query.Where(movie =>
+                movie.Title.Contains(searchTerm) ||
+                movie.Description.Contains(searchTerm));
+        }
+
+        if (request.GenreId.HasValue)
+        {
+            query = query.Where(movie => movie.Genres.Any(genre => genre.Id == request.GenreId.Value));
+        }
+
+        if (request.ActorId.HasValue)
+        {
+            query = query.Where(movie => movie.MovieActors.Any(link => link.ActorId == request.ActorId.Value));
+        }
+
+        if (request.ReleaseYear.HasValue)
+        {
+            query = query.Where(movie => movie.ReleaseYear == request.ReleaseYear.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var offset = (int)Math.Min((long)(pageNumber - 1) * pageSize, int.MaxValue);
+        var movies = await query
             .Include(movie => movie.Genres)
             .Include(movie => movie.MovieActors)
                 .ThenInclude(movieActor => movieActor.Actor)
             .OrderBy(movie => movie.Title)
+            .ThenBy(movie => movie.Id)
+            .Skip(offset)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return movies.Select(MapToDto).ToList();
+        return new PagedResult<MovieDto>
+        {
+            Items = movies.Select(MapToDto).ToList(),
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<MovieDto?> GetByIdAsync(

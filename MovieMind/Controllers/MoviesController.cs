@@ -18,10 +18,11 @@ public class MoviesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<MovieDto>>> GetAll(
+    public async Task<ActionResult<PagedResult<MovieDto>>> GetAll(
+        [FromQuery] MovieSearchRequest request,
         CancellationToken cancellationToken)
     {
-        return Ok(await _movieService.GetAllAsync(cancellationToken));
+        return Ok(await _movieService.SearchAsync(request, cancellationToken));
     }
 
     [HttpGet("{id:guid}")]
