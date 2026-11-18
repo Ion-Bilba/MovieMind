@@ -134,7 +134,7 @@ backend-ul actualizează și relațiile dintre tabele.
 | `Actors` | Actorii folosiți în distribuție. |
 | `MovieActors` | Filmul, actorul, personajul (`CharacterName`) și ordinea (`Position`). |
 | `Users` | Conturi, hash-uri de parolă și roluri; parola în clar nu se salvează. |
-| `Ratings` | Structura pentru evaluările utilizatorilor, cu scoruri 1–5. |
+| `Ratings` | Structura pentru evaluările utilizatorilor, cu scoruri de la 0 la 10. |
 | `__EFMigrationsHistory` | Migrațiile deja aplicate bazei de date. |
 | `__EFMigrationsLock` | Tabel tehnic folosit de EF la aplicarea migrațiilor SQLite. |
 

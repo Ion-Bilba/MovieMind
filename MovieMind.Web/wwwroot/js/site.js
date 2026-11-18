@@ -135,6 +135,7 @@
     q: '', genre: '', decade: '', sort: 'recent',
     view: read(KEYS.view, 'grid') === 'list' ? 'list' : 'grid',
     hero: 0,
+    rating: { movieId: null, items: [], average: 0, count: 0, loading: false, loaded: false, error: '', submitting: false },
     modal: null,
     draft: null,
   };
@@ -155,6 +156,11 @@
       const headers = new Headers(options.headers || {});
       if (authSession?.accessToken) headers.set('Authorization', `Bearer ${authSession.accessToken}`);
       const response = await fetch(`${CFG.apiBaseUrl || '/api'}${path}`, { ...options, headers, signal: controller.signal });
+      if (response.status === 401 && authSession?.accessToken && !path.startsWith('/auth/')) {
+        try { sessionStorage.removeItem('moviemind.auth'); } catch { /* optional */ }
+        authSession = null;
+        queueMicrotask(() => render());
+      }
       const body = response.status === 204 ? null : await response.json().catch(() => null);
       if (!response.ok) {
         const messages = body?.errors ? Object.values(body.errors).flat().join(' ') : '';
@@ -189,6 +195,34 @@
       state.films = (await api('/films')).map(normalize).filter(Boolean);
     } catch (error) { state.loadError = error.message; }
     finally { state.loading = false; render(); }
+  }
+  async function loadFilmRatings(id, force = false) {
+    if (!force && state.rating.movieId === id && (state.rating.loading || state.rating.loaded)) return;
+    state.rating = { movieId: id, items: [], average: 0, count: 0, loading: true, loaded: false, error: '', submitting: false };
+    if (state.route.name === 'film' && state.route.id === id) render();
+    try {
+      const encodedId = encodeURIComponent(id);
+      const results = await Promise.all([
+        api('/movies/' + encodedId + '/ratings'),
+        api('/movies/' + encodedId),
+      ]);
+      if (state.route.name !== 'film' || state.route.id !== id) return;
+      state.rating = {
+        movieId: id,
+        items: Array.isArray(results[0]) ? results[0] : [],
+        average: Number(results[1]?.averageRating) || 0,
+        count: Number(results[1]?.ratingCount) || 0,
+        loading: false,
+        loaded: true,
+        error: '',
+        submitting: false,
+      };
+      render();
+    } catch (error) {
+      if (state.route.name !== 'film' || state.route.id !== id) return;
+      state.rating = { ...state.rating, loading: false, loaded: true, error: error.message, submitting: false };
+      render();
+    }
   }
   async function saveCollection(entries) {
     if (state.collectionBusy) throw new Error('A collection is already being saved. Wait for it to finish.');
@@ -552,6 +586,38 @@
     if (c) c.textContent = plural(filtered(source).length, 'film');
   }
 
+  function ratingPanel(f) {
+    const data = state.rating.movieId === f.id ? state.rating : null;
+    const items = data?.items || [];
+    const mine = items.find(item => item.userId === authSession?.user?.id);
+    const average = data && data.count > 0 ? data.average.toFixed(1) : '—';
+    const summary = '<div class="community-rating-summary"><strong>' + average + '</strong><span>/ 10</span><span class="community-rating-count">' + (data ? plural(data.count, 'rating') : 'Loading ratings…') + '</span></div>';
+    let form = '';
+    if (!authSession?.accessToken) {
+      form = '<p class="rating-message">Sign in to rate this film.</p><button class="btn btn-primary btn-sm" data-act="account">Sign in</button>';
+    } else {
+      const scoreValue = mine ? mine.score : '';
+      const ratingInput = '<input id="rating-score" name="score" class="rating-input" type="number" min="0" max="10" step="0.1" value="' + scoreValue + '" required>';
+      const disabled = !data || data.loading || data.submitting;
+      form = '<form id="rating-form" class="rating-form" data-id="' + esc(f.id) + '">' +
+        '<label for="rating-score">' + (mine ? 'Your rating (0–10)' : 'Rate this film (0–10)') + '</label>' +
+        ratingInput +
+        '<button class="btn btn-primary btn-sm" type="submit" ' + (disabled ? 'disabled' : '') + '>' + (mine ? 'Update rating' : 'Submit rating') + '</button>' +
+        (mine ? '<span class="rating-message">You rated this film ' + mine.score + ' / 10.</span>' : '') +
+        '</form>';
+    }
+    let history = '';
+    if (data?.loading) history = '<p class="rating-message" role="status">Loading ratings…</p>';
+    else if (data?.error) history = '<p class="form-error" role="alert">' + esc(data.error) + '</p><button class="btn btn-ghost btn-sm" data-act="reload-ratings" data-id="' + esc(f.id) + '">Try again</button>';
+    else if (!items.length) history = '<p class="rating-message">No community ratings yet.</p>';
+    else history = '<ul class="rating-list">' + items.map(item => {
+      const changed = item.updatedAt ? 'Updated' : 'Rated';
+      const timestamp = item.updatedAt || item.createdAt;
+      const date = timestamp ? new Date(timestamp).toLocaleDateString() : '';
+      return '<li><span><strong>' + esc(item.userName || 'MovieMind user') + '</strong><small>' + changed + (date ? ' · ' + esc(date) : '') + '</small></span><b>' + Number(item.score).toFixed(1) + ' / 10</b></li>';
+    }).join('') + '</ul>';
+    return '<section class="community-rating" aria-labelledby="community-rating-title"><div class="community-rating-head"><h2 id="community-rating-title">Community rating</h2>' + summary + '</div>' + form + '<div class="rating-history"><h3>Rating history</h3>' + history + '</div></section>';
+  }
   function filmPage(id) {
     const f = film(id);
     if (!f) return `<div class="wrap page"><div class="empty"><h3>This film is not in your collection.</h3><p>It may have been deleted from the database.</p><a class="btn btn-ghost btn-sm" href="#/library">Go to library</a></div></div>`;
@@ -585,6 +651,7 @@
       </div>
       <div class="wrap film-body">
         <div class="film-main">
+          ${ratingPanel(f)}
           <section><h2>Story</h2><p class="synopsis">${esc(f.synopsis || 'No synopsis has been added yet.')}</p></section>
           ${f.cast.length ? `<section><h2>Cast</h2><ul class="cast">${f.cast.map(c => `<li><span class="avatar" style="--h:${hash(c.name) % 360}">${esc(initials(c.name))}</span><div><strong>${esc(c.name)}</strong>${c.role ? `<span>${esc(c.role)}</span>` : ''}</div></li>`).join('')}</ul></section>` : ''}
           ${f.awards ? `<section><h2>Awards</h2><p class="awards">${esc(f.awards)}</p></section>` : ''}
@@ -969,6 +1036,7 @@
     close: () => closeModal(),
     watch: el => toggleWatch(el.dataset.id),
     seen: el => { const id = el.dataset.id; state.seen.has(id) ? state.seen.delete(id) : state.seen.add(id); if (persist()) render(); },
+    'reload-ratings': el => loadFilmRatings(el.dataset.id, true),
     demo: () => { if (!isAdmin()) { toast('Only an administrator can load films into the shared catalog.', 'error'); return; } loadDemo(); },
     retry: () => loadCatalog(),
     'import-browser': async () => {
@@ -1036,6 +1104,7 @@
     state.route = parseRoute();
     if (state.modal) closeModal();
     render();
+    if (state.route.name === 'film') loadFilmRatings(state.route.id);
     if (prev.name !== state.route.name || prev.id !== state.route.id) window.scrollTo(0, 0);
   }
 
@@ -1090,9 +1159,35 @@
       if (button?.isConnected) button.disabled = false;
     }
   }
+  async function submitRating(form) {
+    if (!authSession?.accessToken) { openModal({ type: 'auth', tab: 'signin' }); return; }
+    const id = form.dataset.id;
+    const rawScore = new FormData(form).get('score');
+    if (rawScore === null || rawScore === '') { toast('Choose a rating from 0 to 10.', 'error'); return; }
+    const score = Number(rawScore);
+    if (!Number.isFinite(score) || score < 0 || score > 10) { toast('Choose a rating from 0 to 10.', 'error'); return; }
+    const mine = state.rating.items.find(item => item.userId === authSession?.user?.id);
+    const button = form.querySelector('[type="submit"]');
+    if (button) button.disabled = true;
+    state.rating.submitting = true;
+    try {
+      await api('/movies/' + encodeURIComponent(id) + '/ratings' + (mine ? '/me' : ''), {
+        method: mine ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score }),
+      });
+      toast(mine ? 'Your rating was updated.' : 'Your rating was saved.', 'ok');
+      await loadFilmRatings(id, true);
+    } catch (error) {
+      if (button?.isConnected) button.disabled = false;
+      state.rating.submitting = false;
+      toast(error.message, 'error');
+    }
+  }
   document.addEventListener('submit', e => {
     if (e.target.id === 'film-form') { e.preventDefault(); submitFilm(e.target); }
     if (e.target.id === 'auth-form') { e.preventDefault(); submitAuth(e.target); }
+    if (e.target.id === 'rating-form') { e.preventDefault(); submitRating(e.target); }
   });
   ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { const d = e.target.closest?.('#drop'); if (d) { e.preventDefault(); d.classList.add('is-over'); } }));
   ['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => {

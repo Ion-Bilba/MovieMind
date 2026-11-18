@@ -205,8 +205,8 @@ namespace MovieMind.Infrastructure.Migrations
                     b.Property<Guid>("MovieId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Score")
-                        .HasColumnType("int");
+                    b.Property<double>("Score")
+                        .HasColumnType("float");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -223,7 +223,7 @@ namespace MovieMind.Infrastructure.Migrations
 
                     b.ToTable("Ratings", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Ratings_Score", "[Score] >= 1 AND [Score] <= 5");
+                            t.HasCheckConstraint("CK_Ratings_Score", "[Score] >= 0 AND [Score] <= 10");
                         });
                 });
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MovieMind.Domain.Entities;
 
@@ -12,7 +12,7 @@ public class RatingConfiguration : IEntityTypeConfiguration<Rating>
         {
             table.HasCheckConstraint(
                 "CK_Ratings_Score",
-                "[Score] >= 1 AND [Score] <= 5");
+                "[Score] >= 0 AND [Score] <= 10");
         });
 
         builder.HasKey(r => r.Id);

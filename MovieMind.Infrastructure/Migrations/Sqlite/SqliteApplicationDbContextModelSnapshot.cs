@@ -200,8 +200,8 @@ namespace MovieMind.Infrastructure.Migrations.Sqlite
                     b.Property<Guid>("MovieId")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Score")
-                        .HasColumnType("INTEGER");
+                    b.Property<double>("Score")
+                        .HasColumnType("REAL");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -218,7 +218,7 @@ namespace MovieMind.Infrastructure.Migrations.Sqlite
 
                     b.ToTable("Ratings", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Ratings_Score", "[Score] >= 1 AND [Score] <= 5");
+                            t.HasCheckConstraint("CK_Ratings_Score", "[Score] >= 0 AND [Score] <= 10");
                         });
                 });
 
