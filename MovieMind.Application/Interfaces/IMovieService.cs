@@ -4,7 +4,8 @@ namespace MovieMind.Application.Interfaces;
 
 public interface IMovieService
 {
-    Task<List<MovieDto>> GetAllAsync(
+    Task<PagedResult<MovieDto>> SearchAsync(
+        MovieSearchRequest request,
         CancellationToken cancellationToken = default);
 
     Task<MovieDto?> GetByIdAsync(
