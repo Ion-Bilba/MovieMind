@@ -1,4 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -6,8 +10,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using MovieMind.Application.Interfaces;
+using MovieMind.Application.Services;
+using MovieMind.Domain.Enums;
 using MovieMind.Infrastructure.Persistence;
+using MovieMind.Infrastructure.Security;
 
 namespace MovieMind.Hosting;
 
@@ -25,6 +33,7 @@ public static class MovieMindHosting
         var storage = new MovieMindStorage(dataDirectory);
         Directory.CreateDirectory(storage.PostersDirectory);
         builder.Services.AddSingleton(storage);
+
         var provider = builder.Configuration["Database:Provider"] ?? "Sqlite";
         if (provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
@@ -43,36 +52,88 @@ public static class MovieMindHosting
                 builder.Configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Set ConnectionStrings__DefaultConnection for SQL Server.")));
         }
-        else throw new InvalidOperationException("Database:Provider must be Sqlite or SqlServer.");
-        builder.Services.AddScoped<IApplicationDbContext>(services => services.GetRequiredService<ApplicationDbContext>());
+        else
+        {
+            throw new InvalidOperationException("Database:Provider must be Sqlite or SqlServer.");
+        }
+
+        builder.Services.AddScoped<IApplicationDbContext>(services =>
+            services.GetRequiredService<ApplicationDbContext>());
         builder.Services.AddScoped<FilmCatalog>();
+
+        var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
+        var jwtOptions = jwtSection.Get<JwtOptions>()
+            ?? throw new InvalidOperationException("Missing Jwt configuration.");
+        if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey) ||
+            Encoding.UTF8.GetByteCount(jwtOptions.SigningKey) < 32)
+        {
+            throw new InvalidOperationException(
+                "Configure Jwt:SigningKey in User Secrets or environment variables. Use at least 32 bytes.");
+        }
+        if (string.IsNullOrWhiteSpace(jwtOptions.Issuer) ||
+            string.IsNullOrWhiteSpace(jwtOptions.Audience) ||
+            jwtOptions.AccessTokenMinutes is < 1 or > 1440)
+        {
+            throw new InvalidOperationException("Jwt configuration is invalid.");
+        }
+
+        builder.Services.Configure<JwtOptions>(jwtSection);
+        builder.Services.AddScoped<IAuthService, AuthService>();
+        builder.Services.AddScoped<IPasswordHashService, IdentityPasswordHashService>();
+        builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        builder.Services.AddScoped<InitialAdminSeeder>();
+
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey));
+        builder.Services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.MapInboundClaims = false;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwtOptions.Audience,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = signingKey,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                    NameClaimType = ClaimTypes.Name,
+                    RoleClaimType = ClaimTypes.Role
+                };
+            });
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? ["http://localhost:5104", "https://localhost:7142"];
+        builder.Services.AddCors(options => options.AddPolicy("MovieMindWeb", policy =>
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+        builder.Services.AddAuthorization();
         builder.Services.AddProblemDetails();
     }
 
     public static async Task InitializeMovieMindAsync(this WebApplication app)
     {
-        // Development SQLite is self-contained. SQL Server migrations are an explicit deployment step.
-        if (app.Environment.IsDevelopment() &&
-            app.Services.GetService<MovieMindStorage>() is not null)
+        if (!app.Environment.IsDevelopment() ||
+            app.Services.GetService<MovieMindStorage>() is null)
         {
-            await using var scope = app.Services.CreateAsyncScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            if (db.Database.IsSqlite()) await db.Database.MigrateAsync();
+            return;
         }
+
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if (db.Database.IsSqlite())
+        {
+            await db.Database.MigrateAsync();
+        }
+
+        await scope.ServiceProvider
+            .GetRequiredService<InitialAdminSeeder>()
+            .SeedAsync();
     }
 
     public static void MapMovieMind(this IEndpointRouteBuilder app)
     {
         var api = app.MapGroup("/api");
-        api.AddEndpointFilter(async (context, next) =>
-        {
-            var request = context.HttpContext.Request;
-            var origin = request.Headers.Origin.ToString();
-            if (!HttpMethods.IsGet(request.Method) && !string.IsNullOrEmpty(origin) &&
-                !string.Equals(origin, $"{request.Scheme}://{request.Host}", StringComparison.OrdinalIgnoreCase))
-                return Results.Problem("Save changes from the MovieMind website.", statusCode: 403);
-            return await next(context);
-        });
 
         api.MapGet("/films", async (FilmCatalog catalog, CancellationToken cancellationToken) =>
             (await catalog.Query.AsNoTracking().OrderByDescending(m => m.CreatedAt)
@@ -92,16 +153,24 @@ public static class MovieMindHosting
             if (id != input.Id) errors.Add(new("Film ID must match the URL.", [nameof(input.Id)]));
             if (FilmDocument.IsPosterPath(input.Poster) &&
                 !File.Exists(Path.Combine(storage.PostersDirectory, Path.GetFileName(input.Poster))))
+            {
                 errors.Add(new("The uploaded poster is missing. Choose the image again.", [nameof(input.Poster)]));
-            if (errors.Count > 0) return Results.ValidationProblem(errors
-                .GroupBy(e => e.MemberNames.FirstOrDefault() ?? "film")
-                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage ?? "Invalid value.").ToArray()));
-            try { return Results.Ok(await catalog.SaveAsync(input, cancellationToken)); }
+            }
+            if (errors.Count > 0)
+            {
+                return Results.ValidationProblem(errors
+                    .GroupBy(e => e.MemberNames.FirstOrDefault() ?? "film")
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage ?? "Invalid value.").ToArray()));
+            }
+            try
+            {
+                return Results.Ok(await catalog.SaveAsync(input, cancellationToken));
+            }
             catch (DbUpdateException)
             {
                 return Results.Problem("The film could not be saved. Reload the library and try again.", statusCode: 409);
             }
-        });
+        }).RequireAuthorization(policy => policy.RequireRole(nameof(UserRole.Admin)));
 
         api.MapDelete("/films/{id:guid}", async (Guid id, ApplicationDbContext db, CancellationToken cancellationToken) =>
         {
@@ -110,9 +179,12 @@ public static class MovieMindHosting
             db.Movies.Remove(movie);
             await db.SaveChangesAsync(cancellationToken);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(policy => policy.RequireRole(nameof(UserRole.Admin)));
 
-        api.MapPost("/posters", UploadPosterAsync).DisableAntiforgery();
+        api.MapPost("/posters", UploadPosterAsync)
+            .DisableAntiforgery()
+            .RequireAuthorization(policy => policy.RequireRole(nameof(UserRole.Admin)));
+
         app.MapGet("/media/posters/{name}", (string name, MovieMindStorage storage) =>
         {
             if (!FilmDocument.IsPosterPath($"/media/posters/{name}")) return Results.NotFound();
