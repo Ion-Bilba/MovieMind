@@ -50,6 +50,7 @@ De reținut:
 - Imaginile încărcate sunt fișiere în `App_Data/posters/`; în tabel se salvează URL-ul.
   După upload trebuie să salvezi și formularul filmului.
 - Watchlist-ul, starea „văzut” și tema rămân în browser, separat de catalogul comun.
+- Preferințele utilizatorului sunt salvate pe genuri și expuse împreună cu vectorul folosit de recomandări.
 - Autentificarea JWT este implementată în `MovieMind.API`: register, login și role claims.
   Interfața trimite tokenul în antetul Bearer. Scrierea catalogului și upload-ul sunt
   permise doar rolului `Admin`; conturile noi primesc rolul `User`.
@@ -135,6 +136,8 @@ backend-ul actualizează și relațiile dintre tabele.
 | `MovieActors` | Filmul, actorul, personajul (`CharacterName`) și ordinea (`Position`). |
 | `Users` | Conturi, hash-uri de parolă și roluri; parola în clar nu se salvează. |
 | `Ratings` | Structura pentru evaluările utilizatorilor, cu scoruri de la 0 la 10. |
+| `UserPreferenceProfiles` | Profilul preferințelor fiecărui utilizator și data ultimei actualizări. |
+| `UserGenrePreferences` | Preferințele explicite (0–10) ale unui utilizator pentru genuri. |
 | `__EFMigrationsHistory` | Migrațiile deja aplicate bazei de date. |
 | `__EFMigrationsLock` | Tabel tehnic folosit de EF la aplicarea migrațiilor SQLite. |
 
@@ -183,6 +186,9 @@ Lista filmelor poate fi văzută direct în browser, cu aplicația pornită:
 | Rută | Funcție |
 | --- | --- |
 | `GET /api/films` | Lista filmelor. |
+| `GET /api/users/me/preferences` | Preferințele și vectorul utilizatorului autentificat. |
+| `PUT /api/users/me/preferences` | Înlocuiește preferințele explicite; corpul conține `genrePreferences` cu `genreId` și scor 0–10. O listă goală le șterge. |
+| `GET /api/users/me/preferences/vector` | Vectorul utilizatorului: o valoare pentru fiecare gen. |
 | `GET /api/films/{id}` | Detaliile unui film. |
 | `PUT /api/films/{id}` | Creare sau actualizare cu documentul JSON complet. |
 | `DELETE /api/films/{id}` | Ștergerea filmului și a legăturilor cu genuri/actori. |
@@ -197,6 +203,7 @@ dotnet run --project MovieMind/MovieMind.API.csproj --launch-profile http
 
 Documentul OpenAPI: **http://localhost:5048/openapi/v1.json**.
 Interfața Swagger: **http://localhost:5048/swagger**.
+Valoarea introdusă pentru un gen este nivelul interesului utilizatorului, nu o evaluare a calității genului. Vectorul este ordonat după numele genului și normalizează nivelul 0–10 în afinitate -1..1 (5 devine neutru 0); dacă nu există preferință explicită, folosește media evaluărilor utilizatorului pentru acel gen. Fără semnal, valoarea este 0.
 API-ul separat păstrează și controllerele existente din `Dev` pentru
 `/api/movies`, `/api/actors` și `/api/genres`; acestea folosesc aceeași bază de date.
 Formularul complet din frontend folosește `/api/films`, care include toate

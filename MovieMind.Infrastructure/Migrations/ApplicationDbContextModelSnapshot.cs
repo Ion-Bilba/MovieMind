@@ -267,6 +267,40 @@ namespace MovieMind.Infrastructure.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("MovieMind.Domain.Entities.UserGenrePreference", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GenreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("Score")
+                        .HasColumnType("float");
+
+                    b.HasKey("UserId", "GenreId");
+
+                    b.HasIndex("GenreId");
+
+                    b.ToTable("UserGenrePreferences", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_UserGenrePreferences_Score", "[Score] >= 0 AND [Score] <= 10");
+                        });
+                });
+
+            modelBuilder.Entity("MovieMind.Domain.Entities.UserPreferenceProfile", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserPreferenceProfiles", (string)null);
+                });
+
             modelBuilder.Entity("MovieGenres", b =>
                 {
                     b.HasOne("MovieMind.Domain.Entities.Genre", null)
@@ -320,9 +354,44 @@ namespace MovieMind.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MovieMind.Domain.Entities.UserGenrePreference", b =>
+                {
+                    b.HasOne("MovieMind.Domain.Entities.Genre", "Genre")
+                        .WithMany("UserPreferences")
+                        .HasForeignKey("GenreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MovieMind.Domain.Entities.UserPreferenceProfile", "Profile")
+                        .WithMany("GenrePreferences")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Genre");
+
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("MovieMind.Domain.Entities.UserPreferenceProfile", b =>
+                {
+                    b.HasOne("MovieMind.Domain.Entities.User", "User")
+                        .WithOne("PreferenceProfile")
+                        .HasForeignKey("MovieMind.Domain.Entities.UserPreferenceProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("MovieMind.Domain.Entities.Actor", b =>
                 {
                     b.Navigation("MovieActors");
+                });
+
+            modelBuilder.Entity("MovieMind.Domain.Entities.Genre", b =>
+                {
+                    b.Navigation("UserPreferences");
                 });
 
             modelBuilder.Entity("MovieMind.Domain.Entities.Movie", b =>
@@ -334,7 +403,14 @@ namespace MovieMind.Infrastructure.Migrations
 
             modelBuilder.Entity("MovieMind.Domain.Entities.User", b =>
                 {
+                    b.Navigation("PreferenceProfile");
+
                     b.Navigation("Ratings");
+                });
+
+            modelBuilder.Entity("MovieMind.Domain.Entities.UserPreferenceProfile", b =>
+                {
+                    b.Navigation("GenrePreferences");
                 });
 #pragma warning restore 612, 618
         }

@@ -136,6 +136,7 @@
     view: read(KEYS.view, 'grid') === 'list' ? 'list' : 'grid',
     hero: 0,
     rating: { movieId: null, items: [], average: 0, count: 0, loading: false, loaded: false, error: '', submitting: false },
+    preferences: { data: null, loading: false, loaded: false, error: '', saving: false },
     modal: null,
     draft: null,
   };
@@ -224,7 +225,26 @@
       render();
     }
   }
-  async function saveCollection(entries) {
+  async function loadUserPreferences(force = false) {
+    if (!authSession?.accessToken) {
+      state.preferences = { data: null, loading: false, loaded: false, error: '', saving: false };
+      if (state.route.name === 'preferences') render();
+      return;
+    }
+    if (!force && (state.preferences.loading || state.preferences.loaded)) return;
+    state.preferences = { ...state.preferences, loading: true, error: '' };
+    if (state.route.name === 'preferences') render();
+    try {
+      state.preferences.data = await api('/users/me/preferences');
+      state.preferences.loaded = true;
+    } catch (error) {
+      state.preferences.error = error.message;
+      state.preferences.loaded = true;
+    } finally {
+      state.preferences.loading = false;
+      if (state.route.name === 'preferences') render();
+    }
+  }  async function saveCollection(entries) {
     if (state.collectionBusy) throw new Error('A collection is already being saved. Wait for it to finish.');
     state.collectionBusy = true;
     // Commit each confirmed result so a partial import can be retried without losing successful saves.
@@ -419,12 +439,12 @@
   }
 
   /* -------------------------------------------------------------- layout */
-  const NAV = [['home', '#/', 'Home'], ['library', '#/library', 'Library'], ['watchlist', '#/watchlist', 'Watchlist'], ['studio', '#/studio', 'Studio']];
+  const NAV = [['home', '#/', 'Home'], ['library', '#/library', 'Library'], ['watchlist', '#/watchlist', 'Watchlist'], ['preferences', '#/preferences', 'Preferences'], ['studio', '#/studio', 'Studio']];
   function topbar() {
     const active = state.route.name === 'film' ? 'library' : state.route.name;
     return `<header class="topbar"><div class="wrap topbar-inner">
       <a class="brand" href="#/" aria-label="MovieMind home"><span class="brand-mark" aria-hidden="true"></span>MovieMind</a>
-      <nav class="nav" aria-label="Main">${NAV.filter(([name]) => name !== 'studio' || isAdmin()).map(([name, href, label]) => `<a href="${href}" class="${active === name ? 'is-active' : ''}" ${active === name ? 'aria-current="page"' : ''}>${label}${name === 'watchlist' && state.watch.size ? `<span class="count" data-watch-count>${state.watch.size}</span>` : ''}</a>`).join('')}</nav>
+      <nav class="nav" aria-label="Main">${NAV.filter(([name]) => (name !== 'studio' || isAdmin()) && (name !== 'preferences' || !!authSession?.accessToken)).map(([name, href, label]) => `<a href="${href}" class="${active === name ? 'is-active' : ''}" ${active === name ? 'aria-current="page"' : ''}>${label}${name === 'watchlist' && state.watch.size ? `<span class="count" data-watch-count>${state.watch.size}</span>` : ''}</a>`).join('')}</nav>
       <div class="top-actions">
         <button class="search-trigger" data-act="palette" aria-label="Search films (Ctrl+K)">${icon('search', 17)}<span>Search films</span><kbd>Ctrl K</kbd></button>
         ${isAdmin() ? `<button class="btn btn-primary btn-sm hide-xs" data-act="add">${icon('plus', 16)}Add film</button>` : ''}
@@ -586,6 +606,54 @@
     if (c) c.textContent = plural(filtered(source).length, 'film');
   }
 
+  function updatePreferencePreview(row, useCustom = row?.querySelector('[data-pref-toggle]')?.checked) {
+    if (!row) return;
+    const range = row.querySelector('[data-pref-range]');
+    const score = Number(range?.value ?? 5);
+    const value = useCustom ? (score - 5) / 5 : Number(row.dataset.vectorValue || 0);
+    const label = value > 0.02 ? `+${value.toFixed(2)}` : value.toFixed(2);
+    const valueNode = row.querySelector('.preference-vector-value');
+    const dot = row.querySelector('.preference-meter-dot');
+    const source = row.querySelector('.preference-row-head small');
+    if (valueNode) valueNode.textContent = label;
+    if (dot) dot.style.left = `${clamp((value + 1) * 50, 0, 100)}%`;
+    if (source) source.textContent = useCustom ? 'Your preference' : row.dataset.vectorSignal === 'RatingHistory' ? 'From your film ratings' : 'No rating history yet';
+  }
+  function preferencesPage() {
+    if (!authSession?.accessToken) {
+      return `<div class="wrap page"><div class="page-head"><div><h1 class="display">Your taste profile</h1><p class="lede">Sign in to set your genre preferences.</p></div></div><div class="empty"><h3>Sign in to continue</h3><p>Your preferences are saved to your MovieMind account and help build your recommendation profile.</p><button class="btn btn-primary" data-act="account">Sign in</button></div></div>`;
+    }
+    const data = state.preferences.data;
+    if (state.preferences.loading && !data) return `<div class="wrap page"><div class="page-head"><div><h1 class="display">Your taste profile</h1><p class="lede">Loading your genre preferences…</p></div></div><div class="boot" role="status">Loading preferences…</div></div>`;
+    if (state.preferences.error && !data) return `<div class="wrap page"><div class="page-head"><div><h1 class="display">Your taste profile</h1><p class="lede">We couldn't load your preferences.</p></div></div><div class="empty"><p role="alert">${esc(state.preferences.error)}</p><button class="btn btn-primary" data-act="reload-preferences">Try again</button></div></div>`;
+
+    const explicit = new Map((data?.genrePreferences || []).map(item => [item.genreId, item]));
+    const vector = data?.vector || [];
+    const rows = vector.map(item => {
+      const saved = explicit.get(item.genreId);
+      const inferredLevel = Math.round(((Number(item.value) + 1) * 5) * 10) / 10;
+      const level = saved ? Number(saved.score) : inferredLevel;
+      const value = Number(item.value) || 0;
+      const position = clamp((value + 1) * 50, 0, 100);
+      const source = item.signal === 'ExplicitPreference' ? 'Your preference' : item.signal === 'RatingHistory' ? 'From your film ratings' : 'No rating history yet';
+      const vectorLabel = value > 0.02 ? `+${value.toFixed(2)}` : value.toFixed(2);
+      return `<article class="preference-row" data-vector-value="${value}" data-vector-signal="${esc(item.signal)}">
+        <div class="preference-row-head"><div><h3>${esc(item.genreName)}</h3><small>${source}</small></div><strong class="preference-vector-value">${vectorLabel}</strong></div>
+        <div class="preference-meter" role="img" aria-label="Affinity ${vectorLabel}, from avoid to prefer"><span class="preference-meter-dot" style="left:${position}%"></span></div>
+        <label class="preference-enable"><input type="checkbox" data-pref-toggle value="${esc(item.genreId)}" ${saved ? 'checked' : ''}><span>Set my interest for this genre</span></label>
+        <div class="preference-range"><span>Avoid</span><input type="range" min="0" max="10" step="0.5" value="${clamp(level, 0, 10)}" data-pref-range ${saved ? '' : 'disabled'} aria-label="Interest in ${esc(item.genreName)}"><span>Prefer</span><output data-pref-value>${clamp(level, 0, 10).toFixed(1).replace(/\.0$/, '')}</output></div>
+      </article>`;
+    }).join('');
+    return `<div class="wrap page preference-page">
+      <div class="page-head"><div><h1 class="display">Your taste profile</h1><p class="lede">Set how interested you are in each genre. This is your preference, not a rating of the genre.</p></div><span class="page-count">${plural(explicit.size, 'custom preference')}</span></div>
+      <div class="preference-note"><strong>How the profile works</strong><span>5 is neutral, 0 means avoid, and 10 means strongly prefer. The vector below each genre is centered from −1 to +1. Where you have no custom preference, MovieMind estimates it from your film ratings.</span></div>
+      <p class="form-error" id="preferences-error" role="alert">${esc(state.preferences.error)}</p>
+      <form id="preferences-form" class="preference-form">
+        <div class="preference-grid">${rows || '<div class="empty small"><h3>No genres yet</h3><p>Add genres to the movie catalog first.</p></div>'}</div>
+        <div class="preference-actions"><span class="rating-message">Uncheck a genre to use your rating history again.</span><button class="btn btn-primary" type="submit" ${state.preferences.saving || !vector.length ? 'disabled' : ''}>${state.preferences.saving ? 'Saving…' : 'Save preferences'}</button></div>
+      </form>
+    </div>`;
+  }
   function ratingPanel(f) {
     const data = state.rating.movieId === f.id ? state.rating : null;
     const items = data?.items || [];
@@ -1037,6 +1105,7 @@
     watch: el => toggleWatch(el.dataset.id),
     seen: el => { const id = el.dataset.id; state.seen.has(id) ? state.seen.delete(id) : state.seen.add(id); if (persist()) render(); },
     'reload-ratings': el => loadFilmRatings(el.dataset.id, true),
+    'reload-preferences': () => loadUserPreferences(true),
     demo: () => { if (!isAdmin()) { toast('Only an administrator can load films into the shared catalog.', 'error'); return; } loadDemo(); },
     retry: () => loadCatalog(),
     'import-browser': async () => {
@@ -1046,7 +1115,7 @@
     export: () => exportJSON(),
     import: () => $('#import-file')?.click(),
     account: () => openModal({ type: 'auth', tab: 'signin' }),
-    'sign-out': () => { try { sessionStorage.removeItem('moviemind.auth'); } catch { /* optional browser storage */ } authSession = null; closeModal(); render(); toast('You have signed out.'); },
+    'sign-out': () => { try { sessionStorage.removeItem('moviemind.auth'); } catch { /* optional browser storage */ } authSession = null; state.preferences = { data: null, loading: false, loaded: false, error: '', saving: false }; closeModal(); render(); toast('You have signed out.'); },
     'auth-tab': el => { state.modal.tab = el.dataset.tab; renderModal(); },
     palette: () => openModal({ type: 'palette' }),
     theme: () => applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'),
@@ -1079,6 +1148,7 @@
     const parts = path.split('/').filter(Boolean);
     const params = new URLSearchParams(query);
     if (parts[0] === 'film' && parts[1]) return { name: 'film', id: decodeURIComponent(parts[1]) };
+    if (parts[0] === 'preferences') return { name: 'preferences', id: null };
     if (['library', 'watchlist', 'studio'].includes(parts[0])) {
       if (params.has('genre')) { state.genre = params.get('genre'); state.q = ''; state.decade = ''; }
       if (params.has('sort')) state.sort = params.get('sort');
@@ -1095,9 +1165,9 @@
       return;
     }
     const r = state.route;
-    const page = r.name === 'library' ? catalogPage('library') : r.name === 'watchlist' ? catalogPage('watchlist') : r.name === 'studio' ? studio() : r.name === 'film' ? filmPage(r.id) : home();
+    const page = r.name === 'library' ? catalogPage('library') : r.name === 'watchlist' ? catalogPage('watchlist') : r.name === 'studio' ? studio() : r.name === 'film' ? filmPage(r.id) : r.name === 'preferences' ? preferencesPage() : home();
     app.innerHTML = `<a class="skip" href="#main">Skip to content</a>${topbar()}<main id="main" tabindex="-1" class="main main-${r.name}">${page}</main>${footer()}`;
-    document.title = `${r.name === 'film' ? (film(r.id)?.title || 'Film') : ({ home: 'Home', library: 'Library', watchlist: 'Watchlist', studio: 'Studio' })[r.name]} — MovieMind`;
+    document.title = `${r.name === 'film' ? (film(r.id)?.title || 'Film') : ({ home: 'Home', library: 'Library', watchlist: 'Watchlist', studio: 'Studio', preferences: 'Preferences' })[r.name]} — MovieMind`;
   }
   function onRoute() {
     const prev = state.route;
@@ -1105,6 +1175,7 @@
     if (state.modal) closeModal();
     render();
     if (state.route.name === 'film') loadFilmRatings(state.route.id);
+    if (state.route.name === 'preferences' && authSession?.accessToken) loadUserPreferences();
     if (prev.name !== state.route.name || prev.id !== state.route.id) window.scrollTo(0, 0);
   }
 
@@ -1125,6 +1196,12 @@
     const t = e.target;
     if (t.id === 'q') { state.q = t.value; refreshResults(); }
     if (t.id === 'cmd-q') $('#cmd-list').innerHTML = paletteItems(t.value);
+    if (t.matches('[data-pref-range]')) {
+      const row = t.closest('.preference-row');
+      const output = row?.querySelector('[data-pref-value]');
+      if (output) output.value = Number(t.value).toFixed(1).replace(/\.0$/, '');
+      updatePreferencePreview(row, true);
+    }
     if (t.form?.id === 'film-form' && ['title', 'year', 'director', 'palette', 'motif', 'posterUrl'].includes(t.name)) { syncDraft(t.form); updatePreview(); }
   });
   document.addEventListener('change', e => {
@@ -1132,6 +1209,13 @@
     if (t.id === 'f-genre') { state.genre = t.value; refreshResults(); }
     if (t.id === 'f-decade') { state.decade = t.value; refreshResults(); }
     if (t.id === 'f-sort') { state.sort = t.value; refreshResults(); }
+    if (t.matches('[data-pref-toggle]')) {
+      const row = t.closest('.preference-row');
+      const range = row?.querySelector('[data-pref-range]');
+      if (range) range.disabled = !t.checked;
+      row?.classList.toggle('is-custom', t.checked);
+      updatePreferencePreview(row, t.checked);
+    }
     if (t.id === 'poster-file') useFile(t.files?.[0]);
     if (t.id === 'import-file' && t.files?.[0]) { importJSON(t.files[0]); t.value = ''; }
     if (t.form?.id === 'film-form' && ['palette', 'motif'].includes(t.name)) { syncDraft(t.form); updatePreview(); }
@@ -1153,6 +1237,7 @@
       authSession = { accessToken: result.accessToken, user: { id: result.id, userName: result.userName, email: result.email, role: result.role }, expiresAtUtc: result.expiresAtUtc };
       try { sessionStorage.setItem('moviemind.auth', JSON.stringify(authSession)); } catch { /* token remains in memory for this page */ }
       closeModal(); render();
+      if (state.route.name === 'preferences') loadUserPreferences(true);
       toast(isRegister ? 'Account created. You are now signed in.' : `Welcome, ${authSession.user.userName}.`, 'ok');
     } catch (error) {
       if (errorBox) errorBox.textContent = error.message;
@@ -1184,10 +1269,41 @@
       toast(error.message, 'error');
     }
   }
+  async function submitUserPreferences(form) {
+    if (!authSession?.accessToken) { openModal({ type: 'auth', tab: 'signin' }); return; }
+    const genrePreferences = $$('[data-pref-toggle]:checked', form).map(toggle => ({
+      genreId: toggle.value,
+      score: Number(toggle.closest('.preference-row')?.querySelector('[data-pref-range]')?.value),
+    }));
+    const button = form.querySelector('[type="submit"]');
+    state.preferences.saving = true;
+    state.preferences.error = '';
+    if (button) { button.disabled = true; button.textContent = 'Saving…'; }
+    const errorBox = $('#preferences-error');
+    if (errorBox) errorBox.textContent = '';
+    try {
+      state.preferences.data = await api('/users/me/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ genrePreferences }),
+      });
+      state.preferences.loaded = true;
+      state.preferences.saving = false;
+      render();
+      toast('Your taste profile was saved.', 'ok');
+    } catch (error) {
+      state.preferences.error = error.message;
+      state.preferences.saving = false;
+      if (errorBox) errorBox.textContent = error.message;
+      if (button?.isConnected) { button.disabled = false; button.textContent = 'Save preferences'; }
+      toast(error.message, 'error');
+    }
+  }
   document.addEventListener('submit', e => {
     if (e.target.id === 'film-form') { e.preventDefault(); submitFilm(e.target); }
     if (e.target.id === 'auth-form') { e.preventDefault(); submitAuth(e.target); }
     if (e.target.id === 'rating-form') { e.preventDefault(); submitRating(e.target); }
+    if (e.target.id === 'preferences-form') { e.preventDefault(); submitUserPreferences(e.target); }
   });
   ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { const d = e.target.closest?.('#drop'); if (d) { e.preventDefault(); d.classList.add('is-over'); } }));
   ['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => {

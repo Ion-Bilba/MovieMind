@@ -11,6 +11,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Genre> Genres => Set<Genre>();
     public DbSet<Actor> Actors => Set<Actor>();
     public DbSet<Rating> Ratings => Set<Rating>();
+    public DbSet<UserPreferenceProfile> UserPreferenceProfiles => Set<UserPreferenceProfile>();
+    public DbSet<UserGenrePreference> UserGenrePreferences => Set<UserGenrePreference>();
     public DbSet<MovieActor> MovieActors => Set<MovieActor>();
 
     public ApplicationDbContext(
