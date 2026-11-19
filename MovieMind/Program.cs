@@ -43,6 +43,7 @@ builder.Services.AddScoped<IGenreService, GenreService>();
 builder.Services.AddScoped<IActorService, ActorService>();
 builder.Services.AddScoped<IMovieService, MovieService>();
 builder.Services.AddScoped<IRatingService, RatingService>();
+builder.Services.AddScoped<IUserPreferencesService, UserPreferencesService>();
 
 var app = builder.Build();
 await app.InitializeMovieMindAsync();

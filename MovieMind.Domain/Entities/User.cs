@@ -20,5 +20,7 @@ namespace MovieMind.Domain.Entities
         public DateTime CreatedAt { get; set; }= DateTime.UtcNow;
 
         public ICollection<Rating> Ratings { get; set; } = new List<Rating>();
+
+        public UserPreferenceProfile? PreferenceProfile { get; set; }
     }
 }
