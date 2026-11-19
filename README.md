@@ -195,6 +195,32 @@ Lista filmelor poate fi văzută direct în browser, cu aplicația pornită:
 | `POST /api/posters` | Upload multipart, câmpul `file`; răspunde cu URL-ul imaginii. |
 | `GET /media/posters/{name}` | Imagine încărcată pe server. |
 
+### Algoritmii APA (etapa 8)
+
+Implementările sunt funcții pure în `MovieMind.Application/Algorithms`, reutilizabile
+de motorul de recomandări din etapa 9:
+
+- `SparsePreferenceVector` păstrează afinitățile `-1..1` indexate după ID-ul genului;
+  genurile care lipsesc dintr-un vector sunt tratate ca `0` (neutru). `FromGenres`
+  creează un vector binar pentru un film.
+- `CosineSimilarity.Calculate` calculează similaritatea între doi vectori rari.
+  Întoarce `0` pentru un vector fără magnitudine și respinge valori nenumerice.
+- `KMeansClusterer.Cluster` grupează vectorii utilizatorilor prin distanță euclidiană,
+  cu inițializare deterministă farthest-first și limită configurabilă de iterații.
+- `TopKSelector.Select` ordonează filmele după similaritatea cosinus, rupe egalitățile
+  după titlu/ID și poate exclude filme deja evaluate. Cere `K >= 0`.
+
+Complexități: cosine este `O(d)` așteptat pentru vectori rari; K-Means este aproximativ
+`O(I × n × k × d)` per iterații, pe lângă inițializarea centrelor; selectorul Top-K
+curent sortează candidații și costă `O(m log m)`. Parametrii reprezintă dimensiunile
+`d` (genuri), `n` (utilizatori), `k` (clustere), `I` (iterații) și `m` (filme candidate).
+
+Testele unitare sunt în `tests/MovieMind.Application.Tests`. Rulează-le cu:
+
+```sh
+dotnet test tests/MovieMind.Application.Tests/MovieMind.Application.Tests.csproj
+```
+
 Opțional, poți porni separat proiectul API:
 
 ```sh
@@ -232,6 +258,7 @@ deci nu trebuie pornit API-ul separat și nu este necesară configurarea CORS.
 | `MovieMind.Infrastructure/Migrations/Sqlite` | Migrațiile SQLite. |
 | `MovieMind/DatabaseDesignFactories.cs` | Contexte pentru comenzile EF executate din rădăcina proiectului. |
 | `tests/test_catalog.py` | Teste HTTP cu baze și imagini temporare. |
+| `tests/MovieMind.Application.Tests` | Teste unitare pentru algoritmii APA. |
 
 `MovieMind.Domain/MovieMind.Web` este un scaffold separat, exclus din compilarea
 bibliotecii Domain. Interfața folosită efectiv este proiectul `MovieMind.Web`
@@ -241,6 +268,7 @@ din rădăcină.
 
 ```sh
 dotnet build MovieMind.slnx
+dotnet test tests/MovieMind.Application.Tests/MovieMind.Application.Tests.csproj
 python3 -m unittest discover -s tests -v
 git diff --check
 git status

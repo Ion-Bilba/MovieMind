@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="MovieMind.Hosting/MovieMind.Hosting.csproj" />
+  <Project Path="tests/MovieMind.Application.Tests/MovieMind.Application.Tests.csproj" />
   <Project Path="MovieMind.Application/MovieMind.Application.csproj" />
   <Project Path="MovieMind.Domain/MovieMind.Domain.csproj" />
   <Project Path="MovieMind.Infrastructure/MovieMind.Infrastructure.csproj" />
