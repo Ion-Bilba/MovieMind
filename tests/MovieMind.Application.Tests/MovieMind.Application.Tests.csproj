@@ -16,5 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\MovieMind.Application\MovieMind.Application.csproj" />
+    <ProjectReference Include="..\..\MovieMind.Infrastructure\MovieMind.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

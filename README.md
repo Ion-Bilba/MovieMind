@@ -189,6 +189,7 @@ Lista filmelor poate fi văzută direct în browser, cu aplicația pornită:
 | `GET /api/users/me/preferences` | Preferințele și vectorul utilizatorului autentificat. |
 | `PUT /api/users/me/preferences` | Înlocuiește preferințele explicite; corpul conține `genrePreferences` cu `genreId` și scor 0–10. O listă goală le șterge. |
 | `GET /api/users/me/preferences/vector` | Vectorul utilizatorului: o valoare pentru fiecare gen. |
+| `GET /api/recommendations?count=10` | Recomandări personalizate pentru utilizatorul autentificat; `count` acceptă valori între 1 și 50. |
 | `GET /api/films/{id}` | Detaliile unui film. |
 | `PUT /api/films/{id}` | Creare sau actualizare cu documentul JSON complet. |
 | `DELETE /api/films/{id}` | Ștergerea filmului și a legăturilor cu genuri/actori. |
@@ -220,6 +221,14 @@ Testele unitare sunt în `tests/MovieMind.Application.Tests`. Rulează-le cu:
 ```sh
 dotnet test tests/MovieMind.Application.Tests/MovieMind.Application.Tests.csproj
 ```
+
+Motorul din `MovieMind.Application/Services/RecommendationService.cs` folosește
+similaritatea cosinus dintre profilul pe genuri și vectorii de filme, apoi combină
+scorul de conținut (65%) cu media evaluărilor utilizatorilor din același cluster
+K-Means (35%) când există vecini relevanți. Filmele deja evaluate sunt excluse.
+Un cont fără preferințe și evaluări primește filme ordonate după ratingul catalogului
+cu strategia `Popularity`; pe măsură ce adaugă date, primește strategia `ContentBased`
+sau `Hybrid`. Răspunsul include explicația fiecărei recomandări și scorurile folosite.
 
 Opțional, poți porni separat proiectul API:
 
