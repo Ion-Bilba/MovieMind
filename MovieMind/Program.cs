@@ -44,6 +44,7 @@ builder.Services.AddScoped<IActorService, ActorService>();
 builder.Services.AddScoped<IMovieService, MovieService>();
 builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IUserPreferencesService, UserPreferencesService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 
 var app = builder.Build();
 await app.InitializeMovieMindAsync();
