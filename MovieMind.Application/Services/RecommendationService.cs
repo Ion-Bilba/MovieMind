@@ -53,7 +53,7 @@ public sealed class RecommendationService(
             movie => movie.Genres.Select(genre => genre.Id).ToArray());
         var ratingsByUser = ratings
             .GroupBy(rating => rating.UserId)
-            .ToDictionary(group => group.Key, group => group.ToList());
+            .ToDictionary(group => group.Key, group => group.ToDictionary(rating => rating.MovieId));
         var explicitByUser = explicitPreferences
             .GroupBy(preference => preference.UserId)
             .ToDictionary(group => group.Key, group => group.ToDictionary(item => item.GenreId, item => item.Score));
@@ -70,12 +70,11 @@ public sealed class RecommendationService(
             hasProfile,
             genreIds,
             activeUserIds,
-            ratingsByUser,
             explicitByUser,
             ratingSignalsByUserGenre,
             userVector);
         var excludedMovieIds = ratingsByUser.TryGetValue(userId, out var ownRatings)
-            ? ownRatings.Select(rating => rating.MovieId).ToHashSet()
+            ? ownRatings.Keys.ToHashSet()
             : [];
         var candidates = movies
             .Where(movie => !excludedMovieIds.Contains(movie.Id))
@@ -121,7 +120,6 @@ public sealed class RecommendationService(
         bool hasProfile,
         IReadOnlyCollection<Guid> genreIds,
         IReadOnlyCollection<Guid> activeUserIds,
-        IReadOnlyDictionary<Guid, List<RatingSignal>> ratingsByUser,
         IReadOnlyDictionary<Guid, Dictionary<Guid, double>> explicitByUser,
         IReadOnlyDictionary<(Guid UserId, Guid GenreId), double> ratingSignalsByUserGenre,
         SparsePreferenceVector userVector)
@@ -207,7 +205,7 @@ public sealed class RecommendationService(
         Movie movie,
         ScoredRecommendation content,
         IReadOnlyDictionary<Guid, double> neighborWeights,
-        IReadOnlyDictionary<Guid, List<RatingSignal>> ratingsByUser,
+        IReadOnlyDictionary<Guid, Dictionary<Guid, RatingSignal>> ratingsByUser,
         bool hasProfile)
     {
         double? collaborativeScore = null;
@@ -215,13 +213,8 @@ public sealed class RecommendationService(
         var totalWeight = 0d;
         foreach (var (neighborId, weight) in neighborWeights)
         {
-            if (!ratingsByUser.TryGetValue(neighborId, out var neighborRatings))
-            {
-                continue;
-            }
-
-            var rating = neighborRatings.FirstOrDefault(item => item.MovieId == movie.Id);
-            if (rating is null)
+            if (!ratingsByUser.TryGetValue(neighborId, out var neighborRatings) ||
+                !neighborRatings.TryGetValue(movie.Id, out var rating))
             {
                 continue;
             }

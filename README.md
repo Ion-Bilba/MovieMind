@@ -1,6 +1,6 @@
 # MovieMind — ghid de reluare a proiectului
 
-Actualizat: 5 noiembrie 2026. Branch-ul de integrare al MVP-ului: `Dev`.
+Actualizat: 20 noiembrie 2026. Branch-ul de integrare al MVP-ului: `Dev`.
 
 ## 1. Cum pornești proiectul data viitoare
 
@@ -51,6 +51,7 @@ De reținut:
   După upload trebuie să salvezi și formularul filmului.
 - Watchlist-ul, starea „văzut” și tema rămân în browser, separat de catalogul comun.
 - Preferințele utilizatorului sunt salvate pe genuri și expuse împreună cu vectorul folosit de recomandări.
+- Recomandările personalizate sunt integrate în interfață la **For you** pentru utilizatorii autentificați. Lista se actualizează după login, după salvarea preferințelor și după trimiterea unui rating.
 - Autentificarea JWT este implementată în `MovieMind.API`: register, login și role claims.
   Interfața trimite tokenul în antetul Bearer. Scrierea catalogului și upload-ul sunt
   permise doar rolului `Admin`; conturile noi primesc rolul `User`.
@@ -229,6 +230,48 @@ K-Means (35%) când există vecini relevanți. Filmele deja evaluate sunt exclus
 Un cont fără preferințe și evaluări primește filme ordonate după ratingul catalogului
 cu strategia `Popularity`; pe măsură ce adaugă date, primește strategia `ContentBased`
 sau `Hybrid`. Răspunsul include explicația fiecărei recomandări și scorurile folosite.
+
+### Interfața și verificarea recomandărilor (etapa 10)
+
+După autentificare, deschide **For you** din bara de navigare. Pagina apelează
+`GET /api/recommendations?count=12`, arată strategia și motivul fiecărei alegeri,
+și oferă butonul **Refresh picks**. Un cont nou primește selecția `Popularity` și
+indicația de a evalua filme ori de a-și seta preferințele. Nu este necesară o
+preferință pentru fiecare gen. Ieșirea afișează scorul de clasare ca puncte, nu ca
+rating prezis.
+
+Verificare manuală recomandată:
+
+1. Pornește API-ul și interfața conform instrucțiunilor de la începutul acestui README.
+2. Autentifică un utilizator nou și deschide **For you**: pagina trebuie să se încarce,
+   iar strategia să fie `Popularity` dacă nu are ratinguri/preferințe.
+3. Salvează preferințe de gen sau evaluează un film, apoi apasă **Refresh picks** ori
+   redeschide pagina. Recomandările trebuie să reflecte profilul și să excludă filmele
+   deja evaluate de acel utilizator.
+4. Autentifică alt utilizator: trebuie să vadă propriile recomandări; datele și cache-ul
+   din interfață se resetează la logout/login.
+5. Verifică în DevTools → Network că requestul poartă tokenul Bearer și răspunde cu
+   `200`; fără autentificare, **For you** nu apare în navigație și ruta cere login.
+
+### Cost și limite de performanță
+
+Notăm cu `F` numărul filmelor candidate, `R` numărul ratingurilor, `P` numărul
+preferințelor explicite, `U` numărul utilizatorilor activi, `G` numărul genurilor,
+`k` numărul clusterelor și `I` iterațiile K-Means. Construirea semnalelor de gen
+costă `O(R × ḡ)` pentru media `ḡ` genurilor per film. K-Means costă
+`O(I × U × k × G + U × k² × G)` incluzând inițializarea farthest-first. Clasarea pe conținut costă `O(F × G + F log F)`, iar calculul
+scorurilor colaborative pentru vecini și filmele candidate costă `O(F × U)` după
+indexarea ratingurilor după utilizator și film. Memoria este `O(F + R + P + U × G)`.
+
+Serviciul citește setul complet de filme, ratinguri și preferințe în memorie pentru
+fiecare cerere. Complexitatea asimptotică nu este un benchmark: pentru volume mari,
+trebuie măsurate latența și memoria pe date reprezentative și luată în calcul
+cache-uirea vectorilor/clusterelor sau calculul incremental. Pentru verificarea
+regresiilor algoritmilor și serviciului, rulează:
+
+```sh
+dotnet test tests/MovieMind.Application.Tests/MovieMind.Application.Tests.csproj
+```
 
 Opțional, poți porni separat proiectul API:
 

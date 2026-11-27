@@ -137,6 +137,7 @@
     hero: 0,
     rating: { movieId: null, items: [], average: 0, count: 0, loading: false, loaded: false, error: '', submitting: false },
     preferences: { data: null, loading: false, loaded: false, error: '', saving: false },
+    recommendations: { data: null, loading: false, loaded: false, error: '' },
     modal: null,
     draft: null,
   };
@@ -244,7 +245,28 @@
       state.preferences.loading = false;
       if (state.route.name === 'preferences') render();
     }
-  }  async function saveCollection(entries) {
+  }
+  async function loadRecommendations(force = false) {
+    if (!authSession?.accessToken) {
+      state.recommendations = { data: null, loading: false, loaded: false, error: '' };
+      if (state.route.name === 'recommendations') render();
+      return;
+    }
+    if (!force && (state.recommendations.loading || state.recommendations.loaded)) return;
+    state.recommendations = { ...state.recommendations, loading: true, error: '' };
+    if (state.route.name === 'recommendations') render();
+    try {
+      state.recommendations.data = await api('/recommendations?count=12');
+      state.recommendations.loaded = true;
+    } catch (error) {
+      state.recommendations.error = error.message;
+      state.recommendations.loaded = true;
+    } finally {
+      state.recommendations.loading = false;
+      if (state.route.name === 'recommendations') render();
+    }
+  }
+  async function saveCollection(entries) {
     if (state.collectionBusy) throw new Error('A collection is already being saved. Wait for it to finish.');
     state.collectionBusy = true;
     // Commit each confirmed result so a partial import can be retried without losing successful saves.
@@ -439,12 +461,12 @@
   }
 
   /* -------------------------------------------------------------- layout */
-  const NAV = [['home', '#/', 'Home'], ['library', '#/library', 'Library'], ['watchlist', '#/watchlist', 'Watchlist'], ['preferences', '#/preferences', 'Preferences'], ['studio', '#/studio', 'Studio']];
+  const NAV = [['home', '#/', 'Home'], ['library', '#/library', 'Library'], ['watchlist', '#/watchlist', 'Watchlist'], ['recommendations', '#/recommendations', 'For you'], ['preferences', '#/preferences', 'Preferences'], ['studio', '#/studio', 'Studio']];
   function topbar() {
     const active = state.route.name === 'film' ? 'library' : state.route.name;
     return `<header class="topbar"><div class="wrap topbar-inner">
       <a class="brand" href="#/" aria-label="MovieMind home"><span class="brand-mark" aria-hidden="true"></span>MovieMind</a>
-      <nav class="nav" aria-label="Main">${NAV.filter(([name]) => (name !== 'studio' || isAdmin()) && (name !== 'preferences' || !!authSession?.accessToken)).map(([name, href, label]) => `<a href="${href}" class="${active === name ? 'is-active' : ''}" ${active === name ? 'aria-current="page"' : ''}>${label}${name === 'watchlist' && state.watch.size ? `<span class="count" data-watch-count>${state.watch.size}</span>` : ''}</a>`).join('')}</nav>
+      <nav class="nav" aria-label="Main">${NAV.filter(([name]) => (name !== 'studio' || isAdmin()) && (!['preferences', 'recommendations'].includes(name) || !!authSession?.accessToken)).map(([name, href, label]) => `<a href="${href}" class="${active === name ? 'is-active' : ''}" ${active === name ? 'aria-current="page"' : ''}>${label}${name === 'watchlist' && state.watch.size ? `<span class="count" data-watch-count>${state.watch.size}</span>` : ''}</a>`).join('')}</nav>
       <div class="top-actions">
         <button class="search-trigger" data-act="palette" aria-label="Search films (Ctrl+K)">${icon('search', 17)}<span>Search films</span><kbd>Ctrl K</kbd></button>
         ${isAdmin() ? `<button class="btn btn-primary btn-sm hide-xs" data-act="add">${icon('plus', 16)}Add film</button>` : ''}
@@ -652,6 +674,36 @@
         <div class="preference-grid">${rows || '<div class="empty small"><h3>No genres yet</h3><p>Add genres to the movie catalog first.</p></div>'}</div>
         <div class="preference-actions"><span class="rating-message">Uncheck a genre to use your rating history again.</span><button class="btn btn-primary" type="submit" ${state.preferences.saving || !vector.length ? 'disabled' : ''}>${state.preferences.saving ? 'Saving…' : 'Save preferences'}</button></div>
       </form>
+    </div>`;
+  }
+  function recommendationsPage() {
+    if (!authSession?.accessToken) {
+      return `<div class="wrap page"><div class="page-head"><div><h1 class="display">For you</h1><p class="lede">Sign in to get films selected for your taste.</p></div></div><div class="empty"><h3>Your next favourite film is waiting.</h3><p>Sign in to combine your genre preferences and rating history into personal recommendations.</p><button class="btn btn-primary" data-act="account">Sign in</button></div></div>`;
+    }
+    const { data, loading, error } = state.recommendations;
+    if (loading && !data) return `<div class="wrap page"><div class="page-head"><div><h1 class="display">For you</h1><p class="lede">Finding films that fit your taste…</p></div></div><div class="boot" role="status">Loading recommendations…</div></div>`;
+    if (error && !data) return `<div class="wrap page"><div class="page-head"><div><h1 class="display">For you</h1><p class="lede">We couldn't load your recommendations.</p></div></div><div class="empty"><p role="alert">${esc(error)}</p><button class="btn btn-primary" data-act="reload-recommendations">Try again</button></div></div>`;
+    const items = data?.items || [];
+    const strategyNames = { Popularity: 'Popular starting points', ContentBased: 'Based on your taste profile', Hybrid: 'Taste and community ratings' };
+    const cards = items.map(item => {
+      const f = normalize({ id: item.movieId, title: item.title, year: item.releaseYear, poster: item.posterUrl, genres: item.genres });
+      if (!f) return '';
+      return `<article class="card recommendation-card">
+        <a href="#/film/${encodeURIComponent(f.id)}" class="card-link" aria-label="${esc(f.title)}, ${f.year}">${poster(f)}</a>
+        ${watchBtn(f)}
+        <div class="card-body"><a href="#/film/${encodeURIComponent(f.id)}" class="card-title">${esc(f.title)}</a>
+          <div class="card-meta"><span>${f.year}</span><span class="recommendation-score">${Math.round(Number(item.score) * 100)} pts</span></div>
+          <p class="recommendation-reason">${esc(item.reason)}</p>
+          <div class="tags">${f.genres.map(genre => `<span class="tag">${esc(genre)}</span>`).join('')}</div>
+        </div>
+      </article>`;
+    }).filter(Boolean).join('');
+    return `<div class="wrap page recommendations-page">
+      <div class="page-head"><div><h1 class="display">For you</h1><p class="lede">${esc(data?.message || 'A selection from the MovieMind catalog.')}</p></div>
+        <button class="btn btn-ghost" data-act="reload-recommendations" ${loading ? 'disabled' : ''}>${loading ? 'Refreshing…' : 'Refresh picks'}</button></div>
+      ${data ? `<div class="recommendation-context"><span>${esc(strategyNames[data.strategy] || 'Personalized selection')}</span><span>Updated ${esc(new Date(data.generatedAtUtc).toLocaleString())}</span><span>Scores rank the picks; they are not rating predictions.</span></div>` : ''}
+      ${error ? `<p class="form-error" role="alert">${esc(error)}</p>` : ''}
+      ${cards ? `<div class="grid recommendation-grid">${cards}</div>` : `<div class="empty"><h3>No recommendations yet.</h3><p>Rate a few films or set genre preferences to give MovieMind more signals to work with.</p><a class="btn btn-primary" href="#/preferences">Set genre preferences</a></div>`}
     </div>`;
   }
   function ratingPanel(f) {
@@ -1106,6 +1158,7 @@
     seen: el => { const id = el.dataset.id; state.seen.has(id) ? state.seen.delete(id) : state.seen.add(id); if (persist()) render(); },
     'reload-ratings': el => loadFilmRatings(el.dataset.id, true),
     'reload-preferences': () => loadUserPreferences(true),
+    'reload-recommendations': () => loadRecommendations(true),
     demo: () => { if (!isAdmin()) { toast('Only an administrator can load films into the shared catalog.', 'error'); return; } loadDemo(); },
     retry: () => loadCatalog(),
     'import-browser': async () => {
@@ -1115,7 +1168,7 @@
     export: () => exportJSON(),
     import: () => $('#import-file')?.click(),
     account: () => openModal({ type: 'auth', tab: 'signin' }),
-    'sign-out': () => { try { sessionStorage.removeItem('moviemind.auth'); } catch { /* optional browser storage */ } authSession = null; state.preferences = { data: null, loading: false, loaded: false, error: '', saving: false }; closeModal(); render(); toast('You have signed out.'); },
+    'sign-out': () => { try { sessionStorage.removeItem('moviemind.auth'); } catch { /* optional browser storage */ } authSession = null; state.preferences = { data: null, loading: false, loaded: false, error: '', saving: false }; state.recommendations = { data: null, loading: false, loaded: false, error: '' }; closeModal(); render(); toast('You have signed out.'); },
     'auth-tab': el => { state.modal.tab = el.dataset.tab; renderModal(); },
     palette: () => openModal({ type: 'palette' }),
     theme: () => applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'),
@@ -1149,6 +1202,7 @@
     const params = new URLSearchParams(query);
     if (parts[0] === 'film' && parts[1]) return { name: 'film', id: decodeURIComponent(parts[1]) };
     if (parts[0] === 'preferences') return { name: 'preferences', id: null };
+    if (parts[0] === 'recommendations') return { name: 'recommendations', id: null };
     if (['library', 'watchlist', 'studio'].includes(parts[0])) {
       if (params.has('genre')) { state.genre = params.get('genre'); state.q = ''; state.decade = ''; }
       if (params.has('sort')) state.sort = params.get('sort');
@@ -1165,9 +1219,9 @@
       return;
     }
     const r = state.route;
-    const page = r.name === 'library' ? catalogPage('library') : r.name === 'watchlist' ? catalogPage('watchlist') : r.name === 'studio' ? studio() : r.name === 'film' ? filmPage(r.id) : r.name === 'preferences' ? preferencesPage() : home();
+    const page = r.name === 'library' ? catalogPage('library') : r.name === 'watchlist' ? catalogPage('watchlist') : r.name === 'studio' ? studio() : r.name === 'film' ? filmPage(r.id) : r.name === 'preferences' ? preferencesPage() : r.name === 'recommendations' ? recommendationsPage() : home();
     app.innerHTML = `<a class="skip" href="#main">Skip to content</a>${topbar()}<main id="main" tabindex="-1" class="main main-${r.name}">${page}</main>${footer()}`;
-    document.title = `${r.name === 'film' ? (film(r.id)?.title || 'Film') : ({ home: 'Home', library: 'Library', watchlist: 'Watchlist', studio: 'Studio', preferences: 'Preferences' })[r.name]} — MovieMind`;
+    document.title = `${r.name === 'film' ? (film(r.id)?.title || 'Film') : ({ home: 'Home', library: 'Library', watchlist: 'Watchlist', studio: 'Studio', preferences: 'Preferences', recommendations: 'For you' })[r.name]} — MovieMind`;
   }
   function onRoute() {
     const prev = state.route;
@@ -1176,6 +1230,7 @@
     render();
     if (state.route.name === 'film') loadFilmRatings(state.route.id);
     if (state.route.name === 'preferences' && authSession?.accessToken) loadUserPreferences();
+    if (state.route.name === 'recommendations') loadRecommendations();
     if (prev.name !== state.route.name || prev.id !== state.route.id) window.scrollTo(0, 0);
   }
 
@@ -1236,8 +1291,10 @@
       });
       authSession = { accessToken: result.accessToken, user: { id: result.id, userName: result.userName, email: result.email, role: result.role }, expiresAtUtc: result.expiresAtUtc };
       try { sessionStorage.setItem('moviemind.auth', JSON.stringify(authSession)); } catch { /* token remains in memory for this page */ }
+      state.recommendations = { data: null, loading: false, loaded: false, error: '' };
       closeModal(); render();
       if (state.route.name === 'preferences') loadUserPreferences(true);
+      loadRecommendations(true);
       toast(isRegister ? 'Account created. You are now signed in.' : `Welcome, ${authSession.user.userName}.`, 'ok');
     } catch (error) {
       if (errorBox) errorBox.textContent = error.message;
@@ -1261,6 +1318,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ score }),
       });
+      state.recommendations.loaded = false;
+      if (state.route.name === 'recommendations') loadRecommendations(true);
       toast(mine ? 'Your rating was updated.' : 'Your rating was saved.', 'ok');
       await loadFilmRatings(id, true);
     } catch (error) {
@@ -1289,6 +1348,8 @@
       });
       state.preferences.loaded = true;
       state.preferences.saving = false;
+      state.recommendations.loaded = false;
+      if (state.route.name === 'recommendations') loadRecommendations(true);
       render();
       toast('Your taste profile was saved.', 'ok');
     } catch (error) {
